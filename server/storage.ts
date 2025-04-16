@@ -42,203 +42,215 @@ export interface IStorage {
   updateScheduledContent(id: number, data: Partial<ScheduledContent>): Promise<ScheduledContent | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private experts: Map<number, Expert>;
-  private expertProfiles: Map<number, ExpertProfile>;
-  private topics: Map<number, Topic>;
-  private viewpoints: Map<number, Viewpoint>;
-  private contentIdeas: Map<number, ContentIdea>;
-  private scheduledContent: Map<number, ScheduledContent>;
-  
-  private expertId: number;
-  private profileId: number;
-  private topicId: number;
-  private viewpointId: number;
-  private ideaId: number;
-  private scheduledId: number;
+import { db } from './db';
+import { eq, and } from 'drizzle-orm';
 
-  constructor() {
-    this.experts = new Map();
-    this.expertProfiles = new Map();
-    this.topics = new Map();
-    this.viewpoints = new Map();
-    this.contentIdeas = new Map();
-    this.scheduledContent = new Map();
-    
-    this.expertId = 1;
-    this.profileId = 1;
-    this.topicId = 1;
-    this.viewpointId = 1;
-    this.ideaId = 1;
-    this.scheduledId = 1;
-    
-    // Add initial demo data
-    this.createExpert({
-      username: "demo",
-      password: "password",
-      name: "Dr. Sarah Johnson",
-      role: "Marketing Expert"
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
   // Expert methods
   async getExpert(id: number): Promise<Expert | undefined> {
-    return this.experts.get(id);
+    const [expert] = await db.select().from(experts).where(eq(experts.id, id));
+    return expert;
   }
 
   async getExpertByUsername(username: string): Promise<Expert | undefined> {
-    return Array.from(this.experts.values()).find(
-      (expert) => expert.username === username,
-    );
+    const [expert] = await db.select().from(experts).where(eq(experts.username, username));
+    return expert;
   }
 
   async createExpert(expert: InsertExpert): Promise<Expert> {
-    const id = this.expertId++;
-    const newExpert: Expert = { ...expert, id, profileComplete: false };
-    this.experts.set(id, newExpert);
+    // The insert method in drizzle expects a single object, not an array
+    const [newExpert] = await db.insert(experts).values(expert).returning();
     return newExpert;
   }
   
   async updateExpert(id: number, data: Partial<Expert>): Promise<Expert | undefined> {
-    const expert = this.experts.get(id);
-    if (!expert) return undefined;
-    
-    const updatedExpert = { ...expert, ...data };
-    this.experts.set(id, updatedExpert);
+    const [updatedExpert] = await db.update(experts)
+      .set(data)
+      .where(eq(experts.id, id))
+      .returning();
     return updatedExpert;
   }
 
   // Expert Profile methods
   async getExpertProfile(expertId: number): Promise<ExpertProfile | undefined> {
-    return Array.from(this.expertProfiles.values()).find(
-      (profile) => profile.expertId === expertId
-    );
+    const [profile] = await db.select()
+      .from(expertProfiles)
+      .where(eq(expertProfiles.expertId, expertId));
+    return profile;
   }
 
   async createExpertProfile(profile: InsertExpertProfile): Promise<ExpertProfile> {
-    const id = this.profileId++;
-    const newProfile: ExpertProfile = { ...profile, id };
-    this.expertProfiles.set(id, newProfile);
+    // Extract array types to ensure proper formatting
+    const formattedProfile = {
+      ...profile,
+      secondaryExpertise: profile.secondaryExpertise || [],
+      expertiseKeywords: profile.expertiseKeywords || [],
+      voiceTone: profile.voiceTone || [],
+      platforms: profile.platforms || [],
+      informationSources: profile.informationSources || [],
+      contentGoals: profile.contentGoals || []
+    };
+
+    const [newProfile] = await db.insert(expertProfiles)
+      .values(formattedProfile)
+      .returning();
     
     // Mark the expert's profile as complete
-    const expert = this.experts.get(profile.expertId);
-    if (expert) {
-      this.updateExpert(profile.expertId, { ...expert, profileComplete: true });
-    }
+    await this.updateExpert(profile.expertId, { profileComplete: true });
     
     return newProfile;
   }
   
   async updateExpertProfile(expertId: number, data: Partial<ExpertProfile>): Promise<ExpertProfile | undefined> {
-    const profile = Array.from(this.expertProfiles.values()).find(
-      (p) => p.expertId === expertId
-    );
-    
-    if (!profile) return undefined;
-    
-    const updatedProfile = { ...profile, ...data };
-    this.expertProfiles.set(profile.id, updatedProfile);
+    const [updatedProfile] = await db.update(expertProfiles)
+      .set(data)
+      .where(eq(expertProfiles.expertId, expertId))
+      .returning();
     return updatedProfile;
   }
 
   // Topic methods
   async getTopics(expertId: number): Promise<Topic[]> {
-    return Array.from(this.topics.values()).filter(
-      (topic) => topic.expertId === expertId
-    );
+    return db.select()
+      .from(topics)
+      .where(eq(topics.expertId, expertId));
   }
 
   async getTopic(id: number): Promise<Topic | undefined> {
-    return this.topics.get(id);
+    const [topic] = await db.select()
+      .from(topics)
+      .where(eq(topics.id, id));
+    return topic;
   }
 
   async createTopic(topic: InsertTopic): Promise<Topic> {
-    const id = this.topicId++;
-    const newTopic: Topic = { 
-      ...topic, 
-      id, 
-      createdAt: new Date(),
-      status: "active",
+    // Add some randomness for trending/engagement like the in-memory version
+    const fullTopic = {
+      ...topic,
       trending: Math.random() > 0.7,
       engagement: Math.random() > 0.6 ? "high" : "normal",
       isRecommended: Math.random() > 0.8,
+      status: "active"
     };
-    this.topics.set(id, newTopic);
+    
+    const [newTopic] = await db.insert(topics)
+      .values(fullTopic)
+      .returning();
     return newTopic;
   }
   
   async updateTopic(id: number, data: Partial<Topic>): Promise<Topic | undefined> {
-    const topic = this.topics.get(id);
-    if (!topic) return undefined;
-    
-    const updatedTopic = { ...topic, ...data };
-    this.topics.set(id, updatedTopic);
+    const [updatedTopic] = await db.update(topics)
+      .set(data)
+      .where(eq(topics.id, id))
+      .returning();
     return updatedTopic;
   }
   
   async deleteTopic(id: number): Promise<boolean> {
-    return this.topics.delete(id);
+    const result = await db.delete(topics)
+      .where(eq(topics.id, id))
+      .returning({ id: topics.id });
+    return result.length > 0;
   }
 
   // Viewpoint methods
   async getViewpoints(topicId: number): Promise<Viewpoint[]> {
-    return Array.from(this.viewpoints.values()).filter(
-      (viewpoint) => viewpoint.topicId === topicId
-    );
+    return db.select()
+      .from(viewpoints)
+      .where(eq(viewpoints.topicId, topicId));
   }
 
   async createViewpoint(viewpoint: InsertViewpoint): Promise<Viewpoint> {
-    const id = this.viewpointId++;
-    const newViewpoint: Viewpoint = { ...viewpoint, id };
-    this.viewpoints.set(id, newViewpoint);
+    const [newViewpoint] = await db.insert(viewpoints)
+      .values(viewpoint)
+      .returning();
     return newViewpoint;
   }
 
   // Content Idea methods
   async getContentIdeas(topicId: number, platform?: string): Promise<ContentIdea[]> {
-    return Array.from(this.contentIdeas.values()).filter(
-      (idea) => idea.topicId === topicId && (!platform || idea.platform === platform)
-    );
+    if (platform) {
+      return db.select()
+        .from(contentIdeas)
+        .where(and(
+          eq(contentIdeas.topicId, topicId),
+          eq(contentIdeas.platform, platform)
+        ));
+    } else {
+      return db.select()
+        .from(contentIdeas)
+        .where(eq(contentIdeas.topicId, topicId));
+    }
   }
 
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
-    const id = this.ideaId++;
-    const newIdea: ContentIdea = { ...idea, id, saved: false };
-    this.contentIdeas.set(id, newIdea);
+    const [newIdea] = await db.insert(contentIdeas)
+      .values({
+        ...idea,
+        saved: false
+      })
+      .returning();
     return newIdea;
   }
   
   async updateContentIdea(id: number, data: Partial<ContentIdea>): Promise<ContentIdea | undefined> {
-    const idea = this.contentIdeas.get(id);
-    if (!idea) return undefined;
-    
-    const updatedIdea = { ...idea, ...data };
-    this.contentIdeas.set(id, updatedIdea);
+    const [updatedIdea] = await db.update(contentIdeas)
+      .set(data)
+      .where(eq(contentIdeas.id, id))
+      .returning();
     return updatedIdea;
   }
 
   // Scheduled Content methods
   async getScheduledContent(expertId: number): Promise<ScheduledContent[]> {
-    return Array.from(this.scheduledContent.values()).filter(
-      (content) => content.expertId === expertId
-    );
+    return db.select()
+      .from(scheduledContent)
+      .where(eq(scheduledContent.expertId, expertId));
   }
 
   async createScheduledContent(content: InsertScheduledContent): Promise<ScheduledContent> {
-    const id = this.scheduledId++;
-    const newScheduled: ScheduledContent = { ...content, id, status: "draft" };
-    this.scheduledContent.set(id, newScheduled);
-    return newScheduled;
+    const [newContent] = await db.insert(scheduledContent)
+      .values({
+        ...content,
+        status: "draft"
+      })
+      .returning();
+    return newContent;
   }
   
   async updateScheduledContent(id: number, data: Partial<ScheduledContent>): Promise<ScheduledContent | undefined> {
-    const content = this.scheduledContent.get(id);
-    if (!content) return undefined;
-    
-    const updatedContent = { ...content, ...data };
-    this.scheduledContent.set(id, updatedContent);
+    const [updatedContent] = await db.update(scheduledContent)
+      .set(data)
+      .where(eq(scheduledContent.id, id))
+      .returning();
     return updatedContent;
   }
 }
 
-export const storage = new MemStorage();
+// Create a DatabaseStorage instance to use instead of MemStorage
+export const storage = new DatabaseStorage();
+
+// Create a demo user if it doesn't exist
+(async () => {
+  try {
+    const demoUser = await storage.getExpertByUsername("demo");
+    if (!demoUser) {
+      await storage.createExpert({
+        username: "demo",
+        password: "password", // Default password for the demo user
+        name: "John Smith",
+        role: "Marketing Consultant"
+      });
+      
+      // Update the profileComplete status after creation
+      const demoCreated = await storage.getExpertByUsername("demo");
+      if (demoCreated) {
+        await storage.updateExpert(demoCreated.id, { profileComplete: false });
+      }
+      console.log("Created demo user");
+    }
+  } catch (error) {
+    console.error("Error initializing demo user:", error);
+  }
+})();
