@@ -44,7 +44,27 @@ For each topic, include:
 - A brief description (1-2 sentences)
 - A category
 - 3-5 relevant tags
-- 5 strategic viewpoints that provide different angles or perspectives on the topic (each with title and brief description)`;
+- 5 strategic viewpoints that provide different angles or perspectives on the topic (each with title and brief description)
+
+Your response MUST be formatted as a valid JSON object with this structure:
+{
+  "topics": [
+    {
+      "title": "Title of the topic",
+      "description": "Brief description of the topic",
+      "category": "Category name",
+      "tags": ["tag1", "tag2", "tag3"],
+      "viewpoints": [
+        {
+          "title": "Viewpoint 1 title",
+          "description": "Description of viewpoint 1"
+        },
+        // more viewpoints...
+      ]
+    },
+    // more topics...
+  ]
+}`;
 
     const userPrompt = `Please generate strategic content topics based on my profile:
 - Primary expertise: ${params.primaryExpertise}
@@ -63,17 +83,26 @@ For each topic, include:
       messages: [
         { role: 'user', content: userPrompt }
       ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
+      temperature: 0.7
     });
 
-    const content = response.content[0].text;
-    const result = JSON.parse(content);
+    // Extract text content from the response
+    if (response.content[0].type !== 'text') {
+      throw new Error('Expected text response from Anthropic');
+    }
     
-    return result.topics || [];
-  } catch (error) {
+    const content = response.content[0].text;
+    
+    try {
+      const result = JSON.parse(content);
+      return result.topics || [];
+    } catch (parseError) {
+      console.error('Error parsing JSON response:', parseError);
+      throw new Error('Failed to parse response from Anthropic');
+    }
+  } catch (error: any) {
     console.error('Error generating topics:', error);
-    throw new Error(`Failed to generate topics: ${error.message}`);
+    throw new Error(`Failed to generate topics: ${error?.message || 'Unknown error'}`);
   }
 }
 
@@ -107,7 +136,21 @@ For each idea, include:
 - A brief description
 - Recommended format (post, article, thread, etc.)
 - 3-5 key points to include
-- 2-3 suggested reference sources (prestigious publications, research papers, etc.)`;
+- 2-3 suggested reference sources (prestigious publications, research papers, etc.)
+
+Your response MUST be formatted as a valid JSON object with this structure:
+{
+  "contentIdeas": [
+    {
+      "title": "Idea title",
+      "description": "Brief description of the idea",
+      "format": "Format type (post, article, etc.)",
+      "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
+      "sources": ["Source 1", "Source 2"]
+    },
+    // more ideas...
+  ]
+}`;
 
     const userPrompt = `Please generate content ideas for this topic on ${params.platform}:
 - Topic: ${params.topic}
@@ -123,16 +166,25 @@ For each idea, include:
       messages: [
         { role: 'user', content: userPrompt }
       ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
+      temperature: 0.7
     });
 
-    const content = response.content[0].text;
-    const result = JSON.parse(content);
+    // Extract text content from the response
+    if (response.content[0].type !== 'text') {
+      throw new Error('Expected text response from Anthropic');
+    }
     
-    return result.contentIdeas || [];
-  } catch (error) {
+    const content = response.content[0].text;
+    
+    try {
+      const result = JSON.parse(content);
+      return result.contentIdeas || [];
+    } catch (parseError) {
+      console.error('Error parsing JSON response:', parseError);
+      throw new Error('Failed to parse response from Anthropic');
+    }
+  } catch (error: any) {
     console.error('Error generating content ideas:', error);
-    throw new Error(`Failed to generate content ideas: ${error.message}`);
+    throw new Error(`Failed to generate content ideas: ${error?.message || 'Unknown error'}`);
   }
 }
