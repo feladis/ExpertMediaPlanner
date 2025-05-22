@@ -10,6 +10,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Expert } from "../App";
 import { useToast } from "@/hooks/use-toast";
 
+import WelcomeOnboarding from "@/components/welcome-onboarding";
+
 interface DashboardProps {
   expert: Expert | null;
 }
@@ -18,6 +20,8 @@ interface DashboardProps {
 
 export default function Dashboard({ expert }: DashboardProps) {
   const [profileWizardOpen, setProfileWizardOpen] = useState(false);
+  const [showWelcomeOnboarding, setShowWelcomeOnboarding] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const { toast } = useToast();
   const currentDate = new Date();
   const weekStart = new Date(currentDate);
@@ -68,20 +72,43 @@ export default function Dashboard({ expert }: DashboardProps) {
     }
   });
   
-  // Show profile wizard if profile is not complete
+  // Check for first-time login and show welcome onboarding
   useEffect(() => {
-    if (expert && !expert.profileComplete && !profileLoading && !profile) {
-      setProfileWizardOpen(true);
+    if (expert) {
+      // Check if this is a first-time login and the user hasn't seen onboarding
+      const onboardingShown = localStorage.getItem('onboardingShown');
+      if (!onboardingShown && !hasSeenOnboarding) {
+        setShowWelcomeOnboarding(true);
+        setHasSeenOnboarding(true);
+      }
+      
+      // For existing users who haven't completed their profile, show profile wizard
+      if (!expert.profileComplete && !profileLoading && !profile && !showWelcomeOnboarding) {
+        setProfileWizardOpen(true);
+      }
     }
-  }, [expert, profile, profileLoading]);
+  }, [expert, profile, profileLoading, hasSeenOnboarding, showWelcomeOnboarding]);
   
   const handleProfileComplete = () => {
     // Update the expert object with profileComplete=true
-    onLogin({
-      ...expert,
-      profileComplete: true
-    });
+    if (expert) {
+      // Just store the updated expert info in local storage
+      const updatedExpert = {
+        ...expert,
+        profileComplete: true
+      };
+      localStorage.setItem('expert', JSON.stringify(updatedExpert));
+      window.location.reload(); // Reload to reflect changes
+    }
   };
+  
+  const handleWelcomeComplete = () => {
+    setShowWelcomeOnboarding(false);
+    localStorage.setItem('onboardingShown', 'true');
+  };
+  
+  // Safety check for null expert (though routing should prevent this)
+  if (!expert) return null;
   
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">
@@ -199,6 +226,14 @@ export default function Dashboard({ expert }: DashboardProps) {
         expertId={expert.id}
         onProfileComplete={handleProfileComplete}
       />
+      
+      {/* Welcome onboarding for new users */}
+      {showWelcomeOnboarding && (
+        <WelcomeOnboarding 
+          expert={expert}
+          onCompleted={handleWelcomeComplete}
+        />
+      )}
     </div>
   );
 }
