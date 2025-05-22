@@ -42,6 +42,12 @@ export default function ContentCard({ topic, expertId }: ContentCardProps) {
     enabled: !!topic.id
   });
   
+  // Fetch expert profile to get platforms
+  const { data: expertProfile } = useQuery({
+    queryKey: [`/api/expert-profiles/${expertId}`],
+    enabled: !!expertId
+  });
+  
   // Create content idea mutation
   const createContentIdeaMutation = useMutation({
     mutationFn: async (platform: string) => {
@@ -128,28 +134,55 @@ export default function ContentCard({ topic, expertId }: ContentCardProps) {
       <CardFooter className="border-t border-gray-200 bg-gray-50 p-3">
         <div className="flex justify-between items-center w-full">
           <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="inline-flex items-center text-xs"
-              onClick={() => handleCreateContent("linkedin")}
-              disabled={createContentIdeaMutation.isPending}
-            >
-              <i className="fab fa-linkedin text-blue-600 mr-1"></i>
-              Create
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="inline-flex items-center text-xs"
-              onClick={() => handleCreateContent("twitter")}
-              disabled={createContentIdeaMutation.isPending}
-            >
-              <i className="fab fa-twitter text-blue-400 mr-1"></i>
-              Create
-            </Button>
+            {expertProfile?.platforms?.includes("linkedin") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("linkedin")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-linkedin text-blue-600 mr-1"></i>
+                Create
+              </Button>
+            )}
+            {expertProfile?.platforms?.includes("twitter") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("twitter")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-twitter text-blue-400 mr-1"></i>
+                Create
+              </Button>
+            )}
+            {expertProfile?.platforms?.includes("instagram") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("instagram")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-instagram text-pink-600 mr-1"></i>
+                Create
+              </Button>
+            )}
+            {expertProfile?.platforms?.includes("facebook") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("facebook")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-facebook text-blue-800 mr-1"></i>
+                Create
+              </Button>
+            )}
           </div>
-          {/* Schedule button removed as calendar feature is no longer needed */}
         </div>
       </CardFooter>
     </Card>
