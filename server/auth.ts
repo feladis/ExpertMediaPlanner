@@ -4,18 +4,6 @@ import express, { Request, Response, NextFunction } from 'express';
 import { sessionMiddleware } from './session';
 import { storage } from './storage';
 
-// Interface for Google user profile
-interface GoogleUser {
-  id: string;
-  emails?: { value: string; verified: boolean }[];
-  displayName?: string;
-  name?: {
-    familyName?: string;
-    givenName?: string;
-  };
-  photos?: { value: string }[];
-}
-
 // Setup the Google authentication strategy
 export function setupGoogleAuth(app: express.Express) {
   // Initialize session and passport middleware
@@ -24,51 +12,46 @@ export function setupGoogleAuth(app: express.Express) {
   app.use(passport.session());
 
   // Configure Google Strategy
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID || '',
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-        callbackURL: '/api/auth/google/callback',
-        passReqToCallback: true
-      },
-      async (req, accessToken, refreshToken, profile, done) => {
-        try {
-          // Check if user exists by email
-          const email = profile.emails && profile.emails[0]?.value;
-          
-          if (email) {
-            let existingUser = await storage.getExpertByEmail(email);
-            
-            if (existingUser) {
-              // User exists, update their profile with Google information if needed
-              const updatedUser = await storage.updateExpert(existingUser.id, {
-                name: profile.displayName || existingUser.name,
-                profileImage: profile.photos?.[0]?.value || existingUser.profileImage
-              });
-              
-              return done(null, updatedUser);
-            } else {
-              // Create a new user from Google profile
-              const newUser = await storage.createExpert({
-                username: email.split('@')[0], // Create username from email
-                email: email,
-                password: 'google-auth-' + Math.random().toString(36).substring(2, 15), // Generate random password
-                name: profile.displayName || 'Google User',
-                role: '',
-              });
-              
-              return done(null, newUser);
-            }
-          } else {
-            return done(new Error('No email provided from Google'), undefined);
-          }
-        } catch (error) {
-          return done(error, undefined);
-        }
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    callbackURL: '/api/auth/google/callback'
+  }, 
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      // Extract email from profile
+      const email = profile.emails?.[0]?.value;
+      
+      if (!email) {
+        return done(new Error('No email provided by Google'), null);
       }
-    )
-  );
+      
+      // Try to find existing user by email
+      let user = await storage.getExpertByEmail(email);
+      
+      if (user) {
+        // Update existing user with Google info
+        user = await storage.updateExpert(user.id, {
+          name: profile.displayName || user.name,
+          profileImage: profile.photos?.[0]?.value || user.profileImage
+        });
+      } else {
+        // Create new user from Google profile
+        user = await storage.createExpert({
+          username: email.split('@')[0], // Create username from email
+          email: email,
+          password: 'google-auth-' + Math.random().toString(36).substring(2, 15),
+          name: profile.displayName || 'Google User',
+          role: 'Expert',
+        });
+      }
+      
+      return done(null, user);
+    } catch (error) {
+      console.error('Google auth error:', error);
+      return done(error, null);
+    }
+  }));
 
   // Serialize and deserialize user
   passport.serializeUser((user: any, done) => {
@@ -85,22 +68,26 @@ export function setupGoogleAuth(app: express.Express) {
   });
 
   // Authentication routes
-  app.get(
-    '/api/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
+  app.get('/api/auth/google', 
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      prompt: 'select_account'
+    })
   );
 
-  app.get(
-    '/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
+  app.get('/api/auth/google/callback',
+    passport.authenticate('google', { 
+      failureRedirect: '/login',
+      failureMessage: true
+    }),
     (req: Request, res: Response) => {
       // Successful authentication, redirect to dashboard
-      res.redirect('/dashboard');
+      res.redirect('/');
     }
   );
 
-  // Check if user is authenticated
-  app.use('/api/auth/user', (req: Request, res: Response) => {
+  // User info endpoint
+  app.get('/api/auth/user', (req: Request, res: Response) => {
     if (req.isAuthenticated()) {
       res.json(req.user);
     } else {
