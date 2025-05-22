@@ -12,6 +12,7 @@ export interface IStorage {
   // Expert methods
   getExpert(id: number): Promise<Expert | undefined>;
   getExpertByUsername(username: string): Promise<Expert | undefined>;
+  getExpertByEmail(email: string): Promise<Expert | undefined>;
   createExpert(expert: InsertExpert): Promise<Expert>;
   updateExpert(id: number, data: Partial<Expert>): Promise<Expert | undefined>;
   
@@ -55,6 +56,11 @@ export class DatabaseStorage implements IStorage {
 
   async getExpertByUsername(username: string): Promise<Expert | undefined> {
     const [expert] = await db.select().from(experts).where(eq(experts.username, username));
+    return expert;
+  }
+  
+  async getExpertByEmail(email: string): Promise<Expert | undefined> {
+    const [expert] = await db.select().from(experts).where(eq(experts.email, email));
     return expert;
   }
 
