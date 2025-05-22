@@ -338,8 +338,8 @@ export default function PlatformContentPage() {
                             duration: 2000
                           });
                           
-                          // Navigate directly to content editor
-                          window.location.href = `/content-editor`;
+                          // Use direct navigation to content editor page
+                          window.location.replace('/content-editor');
                         }}
                       >
                         <i className="fas fa-edit mr-1"></i>
