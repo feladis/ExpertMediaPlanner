@@ -323,28 +323,31 @@ export default function PlatformContentPage() {
                     </div>
                     
                     <div className="flex justify-between items-center mt-4">
-                      <Button 
-                        size="sm" 
-                        className="inline-flex items-center px-3 py-1 text-xs bg-[#0984E3] hover:bg-blue-700 text-white"
-                        onClick={() => {
+                      <a 
+                        href="/content-editor" 
+                        onClick={(e) => {
+                          e.preventDefault();
                           // Store both the idea ID and platform for better context
                           localStorage.setItem('selectedIdeaId', idea.id.toString());
                           localStorage.setItem('selectedPlatform', idea.platform);
                           
-                          // Use a transition message to improve UX
+                          // Show success message
                           toast({
                             title: "Opening editor",
                             description: `Preparing content for ${idea.title}`,
-                            duration: 2000
+                            duration: 1000
                           });
                           
-                          // Use direct navigation to content editor page
-                          window.location.replace('/content-editor');
+                          // Force navigation after a very short delay
+                          setTimeout(() => {
+                            document.location.href = '/content-editor';
+                          }, 50);
                         }}
+                        className="inline-flex items-center px-3 py-1 text-xs bg-[#0984E3] hover:bg-blue-700 text-white rounded-md"
                       >
                         <i className="fas fa-edit mr-1"></i>
                         Create Content
-                      </Button>
+                      </a>
                       <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
                         <i className="fas fa-bookmark"></i>
                       </Button>

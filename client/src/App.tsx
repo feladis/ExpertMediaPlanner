@@ -54,7 +54,8 @@ function App() {
   };
   
   // If no expert exists and not at login route, redirect to login
-  if (!expert && location !== "/") {
+  // Special case for content editor which should be accessible even if coming from direct link
+  if (!expert && location !== "/" && location !== "/content-editor") {
     window.location.href = "/";
     return null;
   }
