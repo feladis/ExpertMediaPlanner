@@ -47,17 +47,44 @@ export default function PlatformContentPage() {
     }
   }, [expertProfile]);
   
-  // Set initial selected topic
+  // Set initial selected topic to "All Topics"
   useEffect(() => {
-    if (Array.isArray(topics) && topics.length > 0 && !selectedTopicId) {
-      setSelectedTopicId(topics[0]?.id);
+    if (Array.isArray(topics) && topics.length > 0 && selectedTopicId !== null) {
+      // Don't set a specific topic ID - keep it as null for "All Topics"
+      setSelectedTopicId(null);
     }
-  }, [topics, selectedTopicId]);
+  }, [topics]);
   
-  // Fetch content ideas for selected topic and platform
+  // Fetch content ideas for selected topic (or all topics) and platform
   const { data: contentIdeas = [], isLoading } = useQuery<ContentIdea[]>({
-    queryKey: [`/api/content-ideas/${selectedTopicId}`, selectedPlatform],
-    enabled: !!selectedTopicId
+    queryKey: [`/api/content-ideas/${selectedTopicId || 'all'}`, selectedPlatform, expertId],
+    enabled: true,
+    queryFn: async () => {
+      if (selectedTopicId) {
+        // Fetch ideas for a specific topic
+        const response = await fetch(`/api/content-ideas/${selectedTopicId}`);
+        if (!response.ok) throw new Error('Failed to fetch content ideas');
+        return response.json();
+      } else {
+        // Fetch ideas from all topics for this expert
+        // First get all topics
+        const allIdeas: ContentIdea[] = [];
+        
+        for (const topic of topics) {
+          try {
+            const response = await fetch(`/api/content-ideas/${topic.id}`);
+            if (response.ok) {
+              const topicIdeas = await response.json();
+              allIdeas.push(...topicIdeas);
+            }
+          } catch (error) {
+            console.error(`Error fetching ideas for topic ${topic.id}:`, error);
+          }
+        }
+        
+        return allIdeas;
+      }
+    }
   });
   
   const filteredIdeas = contentIdeas.filter(
@@ -66,7 +93,9 @@ export default function PlatformContentPage() {
   
   // Function to handle topic change
   const handleTopicChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    if (event.target.value) {
+    if (event.target.value === "all") {
+      setSelectedTopicId(null); // Use null to indicate "all topics"
+    } else if (event.target.value) {
       setSelectedTopicId(parseInt(event.target.value, 10));
     } else {
       setSelectedTopicId(null);
@@ -76,17 +105,28 @@ export default function PlatformContentPage() {
   // Create content idea mutation
   const createContentIdeaMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedTopicId || !selectedPlatform) {
+      // If "All Topics" is selected, we need to pick the first topic as we need a specific topic for generation
+      const topicId = selectedTopicId || (topics.length > 0 ? topics[0].id : null);
+      
+      if (!topicId || !selectedPlatform) {
         throw new Error("Please select a topic and platform");
       }
+      
       return apiRequest('POST', '/api/generate-content-ideas', {
-        topicId: selectedTopicId,
+        topicId: topicId,
         platform: selectedPlatform,
         expertId
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/content-ideas/${selectedTopicId}`] });
+      // Invalidate queries for the specific topic and also for all topics view
+      if (selectedTopicId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/content-ideas/${selectedTopicId}`] });
+      } else {
+        // Invalidate all topic queries by using prefix
+        queryClient.invalidateQueries({ queryKey: [`/api/content-ideas/`] });
+      }
+      
       toast({
         title: "Success!",
         description: `New content ideas for ${selectedPlatform} created successfully.`,
@@ -133,9 +173,10 @@ export default function PlatformContentPage() {
         <select
           id="topic-select"
           className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          value={selectedTopicId || ""}
+          value={selectedTopicId || "all"}
           onChange={handleTopicChange}
         >
+          <option value="all">All Topics</option>
           {Array.isArray(topics) && topics.length > 0 ? (
             topics.map((topic: any) => (
               <option key={topic.id} value={topic.id}>
