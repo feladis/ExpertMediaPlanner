@@ -10,8 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ContentEditorPage() {
   const [location] = useLocation();
-  const queryParams = new URLSearchParams(location.split('?')[1] || '');
-  const ideaId = queryParams.get('ideaId');
+  const ideaId = localStorage.getItem('selectedIdeaId') || null;
   const expertId = localStorage.getItem('expertId') ? 
     parseInt(localStorage.getItem('expertId') as string, 10) : 
     1; // Default to expertId 1 for demo

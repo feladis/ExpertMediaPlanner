@@ -326,7 +326,10 @@ export default function PlatformContentPage() {
                       <Button 
                         size="sm" 
                         className="inline-flex items-center px-3 py-1 text-xs"
-                        onClick={() => window.location.href = `/content-editor?ideaId=${idea.id}`}
+                        onClick={() => {
+                          localStorage.setItem('selectedIdeaId', idea.id.toString());
+                          window.location.href = `/content-editor`;
+                        }}
                       >
                         Create Content
                       </Button>
