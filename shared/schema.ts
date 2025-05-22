@@ -78,6 +78,16 @@ export const scheduledContent = pgTable("scheduled_content", {
   content: text("content"),
 });
 
+// Email verification codes
+export const verificationCodes = pgTable("verification_codes", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  code: text("code").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  verified: boolean("verified").default(false),
+});
+
 // Schema for inserting new experts
 export const insertExpertSchema = createInsertSchema(experts).omit({
   id: true,
