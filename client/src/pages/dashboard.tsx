@@ -99,16 +99,21 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
   const generateTopicsMutation = useMutation({
     mutationFn: async () => {
       if (!expert) return null;
-      return apiRequest('POST', '/api/generate-topics', { expertId: expert.id });
+      // Send the request and wait for the response
+      const response = await apiRequest('POST', '/api/generate-topics', { expertId: expert.id });
+      // Parse the JSON response
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate the topics query to refresh the list
       queryClient.invalidateQueries({ queryKey: [`/api/topics/${expert?.id}`] });
       toast({
         title: "Topics generated",
-        description: "New content topics have been created for you."
+        description: `${data.length} new content topics have been created for you.`
       });
     },
     onError: (error) => {
+      console.error("Topic generation error:", error);
       toast({
         title: "Error generating topics",
         description: error.message,
