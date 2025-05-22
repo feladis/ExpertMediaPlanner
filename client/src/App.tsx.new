@@ -81,7 +81,7 @@ function App() {
               {!expert ? (
                 <>
                   <Route path="/login" component={() => <LoginPage onLogin={handleLogin} />} />
-                  <Route component={() => <LoginPage onLogin={handleLogin} />} />
+                  <Route path="/:rest*" component={() => <LoginPage onLogin={handleLogin} />} />
                 </>
               ) : (
                 <>

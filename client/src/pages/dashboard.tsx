@@ -4,37 +4,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ContentCard from "@/components/content-card";
-// PlatformContent import removed - now has its own page
 import ProfileWizard from "@/components/profile-wizard";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Expert } from "../App";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 
 interface DashboardProps {
   expert: Expert | null;
-  onLogin: (expert: Expert) => void;
 }
 
-// Login form schema
-const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
-});
+// Will be used if we need additional schemas for the dashboard page
 
-export default function Dashboard({ expert, onLogin }: DashboardProps) {
+export default function Dashboard({ expert }: DashboardProps) {
   const [profileWizardOpen, setProfileWizardOpen] = useState(false);
   const { toast } = useToast();
   const currentDate = new Date();
@@ -47,55 +29,16 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
     year: 'numeric' 
   });
   
-  // Login form
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "demo",
-      password: "password"
-    },
-  });
-  
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof loginSchema>) => {
-      const response = await apiRequest('POST', '/api/login', values);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      onLogin(data);
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${data.name}!`
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Handle login form submission
-  function onSubmit(values: z.infer<typeof loginSchema>) {
-    loginMutation.mutate(values);
-  }
-  
   // Check if expert profile exists
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery<any>({
     queryKey: [`/api/expert-profiles/${expert?.id}`],
     enabled: !!expert?.id
   });
   
   // Query topics
-  const { data: topics = [], isLoading: topicsLoading } = useQuery({
+  const { data: topics = [], isLoading: topicsLoading } = useQuery<any>({
     queryKey: [`/api/topics/${expert?.id}`],
-    enabled: !!expert?.id,
-    onSuccess: (data) => {
-      console.log("Topics loaded:", data);
-    }
+    enabled: !!expert?.id
   });
   
   // Generate topics mutation
@@ -115,7 +58,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
         description: `${data.length} new content topics have been created for you.`
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Topic generation error:", error);
       toast({
         title: "Error generating topics",
@@ -124,70 +67,6 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       });
     }
   });
-  
-  // If no expert exists, show login form
-  if (!expert) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F6FA]">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="flex justify-center mb-6">
-              <div className="text-xl font-semibold text-[#2D3436] flex items-center">
-                <i className="fas fa-brain mr-2 text-[#0984E3]"></i>
-                ExpertPlanner
-              </div>
-            </div>
-            
-            <h1 className="text-2xl font-bold text-center mb-6">Login to Your Account</h1>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-[#0984E3]"
-                  disabled={loginMutation.isPending}
-                >
-                  {loginMutation.isPending ? "Logging in..." : "Login"}
-                </Button>
-              </form>
-            </Form>
-            
-            <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Demo credentials are pre-filled (username: demo, password: password)</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
   
   // Show profile wizard if profile is not complete
   useEffect(() => {
