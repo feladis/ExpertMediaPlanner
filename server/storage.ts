@@ -33,6 +33,7 @@ export interface IStorage {
   
   // Content Idea methods
   getContentIdeas(topicId: number, platform?: string): Promise<ContentIdea[]>;
+  getContentIdeaById(id: number): Promise<ContentIdea | undefined>;
   createContentIdea(idea: InsertContentIdea): Promise<ContentIdea>;
   updateContentIdea(id: number, data: Partial<ContentIdea>): Promise<ContentIdea | undefined>;
   
@@ -182,6 +183,13 @@ export class DatabaseStorage implements IStorage {
         .from(contentIdeas)
         .where(eq(contentIdeas.topicId, topicId));
     }
+  }
+
+  async getContentIdeaById(id: number): Promise<ContentIdea | undefined> {
+    const [idea] = await db.select()
+      .from(contentIdeas)
+      .where(eq(contentIdeas.id, id));
+    return idea;
   }
 
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {

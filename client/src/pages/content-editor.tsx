@@ -23,13 +23,12 @@ export default function ContentEditorPage() {
 
   // Fetch content idea details
   const { data: idea, isLoading } = useQuery<ContentIdea>({
-    queryKey: [`/api/content-ideas/details/${ideaId}`],
+    queryKey: [`/api/content-idea/${ideaId}`],
     queryFn: async () => {
       if (!ideaId) return null;
-      const response = await fetch(`/api/content-ideas/${ideaId}`);
+      const response = await fetch(`/api/content-idea/${ideaId}`);
       if (!response.ok) throw new Error('Failed to fetch content idea');
-      const ideas = await response.json();
-      return ideas.find((i: ContentIdea) => i.id === parseInt(ideaId));
+      return response.json();
     },
     enabled: !!ideaId
   });
@@ -47,17 +46,21 @@ export default function ContentEditorPage() {
 
   // Generate a template based on the content idea
   const generateContentTemplate = (idea: ContentIdea) => {
-    let template = `# ${idea.title}\n\n`;
+    let template = `# ${idea.title || 'Untitled'}\n\n`;
     
     // Add introduction based on description
-    template += `## Introduction\n${idea.description}\n\n`;
+    template += `## Introduction\n${idea.description || 'Add your introduction here...'}\n\n`;
     
     // Add sections for each key point
     template += `## Key Points\n`;
-    idea.keyPoints.forEach((point, index) => {
-      template += `### ${index + 1}. ${point}\n`;
-      template += `[Expand on this point here...]\n\n`;
-    });
+    if (idea.keyPoints && idea.keyPoints.length > 0) {
+      idea.keyPoints.forEach((point, index) => {
+        template += `### ${index + 1}. ${point}\n`;
+        template += `[Expand on this point here...]\n\n`;
+      });
+    } else {
+      template += `[Add your key points here...]\n\n`;
+    }
     
     // Add call to action
     template += `## Conclusion\n`;
@@ -65,9 +68,13 @@ export default function ContentEditorPage() {
     
     // Add sources
     template += `## Sources\n`;
-    idea.sources.forEach(source => {
-      template += `- ${source}\n`;
-    });
+    if (idea.sources && idea.sources.length > 0) {
+      idea.sources.forEach(source => {
+        template += `- ${source}\n`;
+      });
+    } else {
+      template += `[Add your sources here...]\n`;
+    }
     
     return template;
   };

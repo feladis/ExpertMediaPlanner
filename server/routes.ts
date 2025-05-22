@@ -199,6 +199,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Content Ideas API
+  // Get content idea by ID - must be placed before the more generic route
+  app.get('/api/content-idea/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const idea = await storage.getContentIdeaById(id);
+      
+      if (!idea) {
+        return res.status(404).json({ message: 'Content idea not found' });
+      }
+      
+      res.json(idea);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // Get content ideas by topic ID
   app.get('/api/content-ideas/:topicId', async (req: Request, res: Response) => {
     try {
       const topicId = parseInt(req.params.topicId);
