@@ -1,6 +1,21 @@
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import { pool } from './db';
+import { Expert } from '@shared/schema';
+
+// Add user type to Express Session
+declare module 'express-session' {
+  interface SessionData {
+    user: {
+      id: number;
+      username: string;
+      name: string;
+      role: string;
+      profileComplete: boolean;
+      profileImage?: string;
+    };
+  }
+}
 
 // Configure session store with Postgres
 const PgSession = connectPgSimple(session);

@@ -416,7 +416,7 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
     }
   });
 
-  // Simple authentication for demo purposes
+  // Enhanced authentication with sessions
   app.post('/api/login', async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
@@ -431,6 +431,17 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
+      // Store user in session
+      if (req.session) {
+        req.session.user = {
+          id: expert.id,
+          username: expert.username,
+          name: expert.name,
+          role: expert.role,
+          profileComplete: expert.profileComplete
+        };
+      }
+      
       res.json({
         id: expert.id,
         username: expert.username,
@@ -440,6 +451,46 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
       });
     } catch (err) {
       handleError(err, res);
+    }
+  });
+  
+  // Session-based user check
+  app.get('/api/me', async (req: Request, res: Response) => {
+    try {
+      if (req.session && req.session.user) {
+        const userId = req.session.user.id;
+        const expert = await storage.getExpert(userId);
+        
+        if (expert) {
+          return res.json({
+            id: expert.id,
+            username: expert.username,
+            name: expert.name,
+            role: expert.role,
+            profileComplete: expert.profileComplete,
+            profileImage: expert.profileImage
+          });
+        }
+      }
+      
+      res.status(401).json({ message: 'Not authenticated' });
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // Logout endpoint
+  app.post('/api/logout', (req: Request, res: Response) => {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Failed to logout' });
+        }
+        
+        res.json({ message: 'Logged out successfully' });
+      });
+    } else {
+      res.json({ message: 'Already logged out' });
     }
   });
 
