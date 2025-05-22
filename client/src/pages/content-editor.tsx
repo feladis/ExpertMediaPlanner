@@ -200,20 +200,28 @@ export default function ContentEditorPage() {
       <div className="mt-4 p-4 bg-gray-50 rounded-md">
         <h3 className="text-sm font-medium text-gray-700 mb-2">Reference Material</h3>
         <div className="text-xs text-gray-600">
-          <p className="mb-2"><strong>Description:</strong> {idea?.description}</p>
+          <p className="mb-2"><strong>Description:</strong> {idea?.description || 'No description available'}</p>
           
           <p className="mb-1"><strong>Key Points:</strong></p>
           <ul className="list-disc list-inside mb-2">
-            {idea?.keyPoints.map((point, idx) => (
-              <li key={idx}>{point}</li>
-            ))}
+            {idea?.keyPoints && idea.keyPoints.length > 0 ? (
+              idea.keyPoints.map((point, idx) => (
+                <li key={idx}>{point}</li>
+              ))
+            ) : (
+              <li>No key points available</li>
+            )}
           </ul>
           
           <p className="mb-1"><strong>Sources:</strong></p>
           <ul className="list-disc list-inside">
-            {idea?.sources.map((source, idx) => (
-              <li key={idx}>{source}</li>
-            ))}
+            {idea?.sources && idea.sources.length > 0 ? (
+              idea.sources.map((source, idx) => (
+                <li key={idx}>{source}</li>
+              ))
+            ) : (
+              <li>No sources available</li>
+            )}
           </ul>
         </div>
       </div>
