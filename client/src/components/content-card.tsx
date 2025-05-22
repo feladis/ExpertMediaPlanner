@@ -149,14 +149,7 @@ export default function ContentCard({ topic, expertId }: ContentCardProps) {
               Create
             </Button>
           </div>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="text-green-600 hover:text-green-800 text-sm font-medium"
-          >
-            <i className="fas fa-calendar-plus mr-1"></i>
-            Schedule
-          </Button>
+          {/* Schedule button removed as calendar feature is no longer needed */}
         </div>
       </CardFooter>
     </Card>
