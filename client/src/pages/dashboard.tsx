@@ -217,13 +217,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
             <i className="fas fa-magic mr-2"></i>
             Generate Weekly Topics
           </Button>
-          <Button 
-            variant="outline" 
-            className="inline-flex items-center text-[#0984E3]"
-          >
-            <i className="fas fa-plus mr-2"></i>
-            Add Content
-          </Button>
+          {/* Add Content button removed as requested */}
         </div>
       </div>
 
