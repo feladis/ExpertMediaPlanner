@@ -55,16 +55,7 @@ export default function Sidebar({ expert, onLogout }: SidebarProps) {
               </a>
             </Link>
             
-            <Link href="/content-calendar">
-              <a className={`flex items-center px-4 py-3 text-sm font-medium rounded-md ${
-                location === "/content-calendar" 
-                  ? "text-white bg-[#0984E3]" 
-                  : "text-[#2D3436] hover:bg-[#F5F6FA]"
-              }`}>
-                <i className="fas fa-calendar-alt mr-3"></i>
-                Content Calendar
-              </a>
-            </Link>
+            {/* Content Calendar feature removed as requested */}
             
             <button
               onClick={onLogout}

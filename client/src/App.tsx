@@ -7,7 +7,6 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import ContentIdeas from "@/pages/content-ideas";
-import ContentCalendar from "@/pages/content-calendar";
 import Sidebar from "@/components/sidebar";
 import Topbar from "@/components/topbar";
 
@@ -75,7 +74,6 @@ function App() {
               <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} />} />
               <Route path="/profile" component={() => <ProfilePage expert={expert} />} />
               <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
-              <Route path="/content-calendar" component={() => <ContentCalendar expert={expert} />} />
               <Route component={NotFound} />
             </Switch>
           </main>
