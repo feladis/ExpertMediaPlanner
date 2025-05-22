@@ -23,19 +23,6 @@ export default function Sidebar({ expert, onLogout }: SidebarProps) {
         <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
           <nav className="flex-1 px-2 space-y-1">
             <div className="mb-1">
-              <Link href="/">
-                <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-md cursor-pointer ${
-                  location === "/" 
-                    ? "text-white bg-[#0984E3]" 
-                    : "text-[#2D3436] hover:bg-[#F5F6FA]"
-                }`}>
-                  <i className="fas fa-list-ul mr-3"></i>
-                  Topic Ideas
-                </div>
-              </Link>
-            </div>
-            
-            <div className="mb-1">
               <Link href="/profile">
                 <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-md cursor-pointer ${
                   location === "/profile" 
@@ -44,6 +31,19 @@ export default function Sidebar({ expert, onLogout }: SidebarProps) {
                 }`}>
                   <i className="fas fa-user-circle mr-3"></i>
                   My Profile
+                </div>
+              </Link>
+            </div>
+            
+            <div className="mb-1">
+              <Link href="/">
+                <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-md cursor-pointer ${
+                  location === "/" 
+                    ? "text-white bg-[#0984E3]" 
+                    : "text-[#2D3436] hover:bg-[#F5F6FA]"
+                }`}>
+                  <i className="fas fa-list-ul mr-3"></i>
+                  Topic Ideas
                 </div>
               </Link>
             </div>
