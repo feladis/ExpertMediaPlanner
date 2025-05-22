@@ -49,19 +49,6 @@ export default function Sidebar({ expert, onLogout }: SidebarProps) {
             </div>
             
             <div className="mb-1">
-              <Link href="/content-ideas">
-                <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-md cursor-pointer ${
-                  location === "/content-ideas" 
-                    ? "text-white bg-[#0984E3]" 
-                    : "text-[#2D3436] hover:bg-[#F5F6FA]"
-                }`}>
-                  <i className="fas fa-lightbulb mr-3"></i>
-                  Content Ideas
-                </div>
-              </Link>
-            </div>
-            
-            <div className="mb-1">
               <Link href="/platform-content">
                 <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-md cursor-pointer ${
                   location === "/platform-content" 
