@@ -92,7 +92,10 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
   // Query topics
   const { data: topics = [], isLoading: topicsLoading } = useQuery({
     queryKey: [`/api/topics/${expert?.id}`],
-    enabled: !!expert?.id
+    enabled: !!expert?.id,
+    onSuccess: (data) => {
+      console.log("Topics loaded:", data);
+    }
   });
   
   // Generate topics mutation
@@ -282,13 +285,14 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
           </div>
         ) : topics.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {topics.map((topic: any) => (
+            {Array.isArray(topics) && topics.map((topic: any) => (
               <ContentCard 
                 key={topic.id} 
                 topic={topic} 
                 expertId={expert.id} 
               />
             ))}
+            {console.log("Rendering topics:", topics)}
           </div>
         ) : (
           <Card className="p-6 text-center">
