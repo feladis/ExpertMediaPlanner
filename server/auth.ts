@@ -30,8 +30,9 @@ export function setupGoogleAuth(app: express.Express) {
         clientID: process.env.GOOGLE_CLIENT_ID || '',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
         callbackURL: '/api/auth/google/callback',
+        passReqToCallback: true
       },
-      async (accessToken, refreshToken, profile, done) => {
+      async (req, accessToken, refreshToken, profile, done) => {
         try {
           // Check if user exists by email
           const email = profile.emails && profile.emails[0]?.value;
