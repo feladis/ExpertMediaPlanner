@@ -12,6 +12,7 @@ import ContentEditorPage from "@/pages/content-editor";
 import LoginPage from "@/pages/login";
 import Sidebar from "@/components/sidebar";
 import Topbar from "@/components/topbar";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface Expert {
   id: number;
@@ -23,34 +24,18 @@ export interface Expert {
 }
 
 function App() {
-  const [expert, setExpert] = useState<Expert | null>(null);
+  const { user: expert, isLoading, login, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
   
-  // Check for stored expert data on initial load
-  useEffect(() => {
-    const storedExpert = localStorage.getItem('expert');
-    if (storedExpert) {
-      setExpert(JSON.parse(storedExpert));
-    }
-  }, []);
-  
-  // Save expert data to localStorage when it changes
-  useEffect(() => {
-    if (expert) {
-      localStorage.setItem('expert', JSON.stringify(expert));
-    }
-  }, [expert]);
-  
   const handleLogin = (loggedInExpert: Expert) => {
-    setExpert(loggedInExpert);
+    login(loggedInExpert);
     setLocation("/"); // Redirect to dashboard after login
   };
   
   const handleLogout = () => {
-    localStorage.removeItem('expert');
-    setExpert(null);
-    setLocation("/login"); // Redirect to login page
+    logout();
+    // The redirect will be handled by the server after logout
   };
   
   const toggleSidebar = () => {
@@ -59,10 +44,10 @@ function App() {
   
   // If no expert exists and not at login page, redirect to login
   useEffect(() => {
-    if (!expert && location !== "/login" && location !== "/content-editor") {
+    if (!isLoading && !expert && location !== "/login" && location !== "/content-editor") {
       setLocation("/login");
     }
-  }, [expert, location, setLocation]);
+  }, [expert, isLoading, location, setLocation]);
   
   return (
     <QueryClientProvider client={queryClient}>

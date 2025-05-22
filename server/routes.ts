@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -13,7 +13,7 @@ import { generateTopics, generateContentIdeas } from "./anthropic";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, requireAuth?: (req: Request, res: Response, next: NextFunction) => void): Promise<Server> {
   // Error handling middleware
   const handleError = (err: any, res: Response) => {
     console.error(err);
