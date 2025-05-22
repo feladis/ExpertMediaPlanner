@@ -338,10 +338,8 @@ export default function PlatformContentPage() {
                             duration: 2000
                           });
                           
-                          // Short delay for toast to be visible before redirect
-                          setTimeout(() => {
-                            window.location.href = `/content-editor`;
-                          }, 300);
+                          // Navigate directly to content editor
+                          window.location.href = `/content-editor`;
                         }}
                       >
                         <i className="fas fa-edit mr-1"></i>
