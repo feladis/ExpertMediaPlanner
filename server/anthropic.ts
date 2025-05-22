@@ -94,10 +94,22 @@ Your response MUST be formatted as a valid JSON object with this structure:
     const content = response.content[0].text;
     
     try {
-      const result = JSON.parse(content);
+      // Clean up the content in case it's wrapped in markdown code blocks
+      let cleanContent = content;
+      
+      // Remove markdown code block markers if present
+      const jsonRegex = /```(?:json)?([\s\S]*?)```/;
+      const match = content.match(jsonRegex);
+      if (match && match[1]) {
+        cleanContent = match[1].trim();
+      }
+      
+      // Attempt to parse the JSON
+      const result = JSON.parse(cleanContent);
       return result.topics || [];
     } catch (parseError) {
       console.error('Error parsing JSON response:', parseError);
+      console.error('Raw content:', content);
       throw new Error('Failed to parse response from Anthropic');
     }
   } catch (error: any) {
@@ -177,10 +189,22 @@ Your response MUST be formatted as a valid JSON object with this structure:
     const content = response.content[0].text;
     
     try {
-      const result = JSON.parse(content);
+      // Clean up the content in case it's wrapped in markdown code blocks
+      let cleanContent = content;
+      
+      // Remove markdown code block markers if present
+      const jsonRegex = /```(?:json)?([\s\S]*?)```/;
+      const match = content.match(jsonRegex);
+      if (match && match[1]) {
+        cleanContent = match[1].trim();
+      }
+      
+      // Attempt to parse the JSON
+      const result = JSON.parse(cleanContent);
       return result.contentIdeas || [];
     } catch (parseError) {
       console.error('Error parsing JSON response:', parseError);
+      console.error('Raw content:', content);
       throw new Error('Failed to parse response from Anthropic');
     }
   } catch (error: any) {
