@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExpertProfile } from "@shared/schema";
 
 interface ContentIdea {
   id: number;
@@ -23,6 +24,19 @@ interface PlatformContentProps {
 
 export default function PlatformContent({ topicId, expertId }: PlatformContentProps) {
   const [selectedPlatform, setSelectedPlatform] = useState("linkedin");
+  
+  // Fetch expert profile to get platforms
+  const { data: expertProfile } = useQuery<ExpertProfile>({
+    queryKey: [`/api/expert-profiles/${expertId}`],
+    enabled: !!expertId
+  });
+  
+  // Set default platform based on expert profile
+  useEffect(() => {
+    if (expertProfile?.platforms && expertProfile.platforms.length > 0) {
+      setSelectedPlatform(expertProfile.platforms[0]);
+    }
+  }, [expertProfile]);
   
   const { data: contentIdeas = [], isLoading } = useQuery({
     queryKey: [`/api/content-ideas/${topicId}`, selectedPlatform],
