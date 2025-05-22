@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import ContentIdeas from "@/pages/content-ideas";
 import PlatformContent from "@/pages/platform-content";
+import ContentEditorPage from "@/pages/content-editor";
 import Sidebar from "@/components/sidebar";
 import Topbar from "@/components/topbar";
 
@@ -76,6 +77,7 @@ function App() {
               <Route path="/profile" component={() => <ProfilePage expert={expert} />} />
               <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
               <Route path="/platform-content" component={() => <PlatformContent />} />
+              <Route path="/content-editor" component={() => <ContentEditorPage />} />
               <Route component={NotFound} />
             </Switch>
           </main>

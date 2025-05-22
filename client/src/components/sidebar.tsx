@@ -74,6 +74,19 @@ export default function Sidebar({ expert, onLogout }: SidebarProps) {
               </Link>
             </div>
             
+            <div className="mb-1">
+              <Link href="/content-editor">
+                <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-md cursor-pointer ${
+                  location.startsWith("/content-editor") 
+                    ? "text-white bg-[#0984E3]" 
+                    : "text-[#2D3436] hover:bg-[#F5F6FA]"
+                }`}>
+                  <i className="fas fa-edit mr-3"></i>
+                  Content Editor
+                </div>
+              </Link>
+            </div>
+            
             <button
               onClick={onLogout}
               className="w-full flex items-center px-4 py-3 text-sm font-medium text-[#2D3436] hover:bg-[#F5F6FA] rounded-md"
