@@ -134,56 +134,54 @@ export default function ContentCard({ topic, expertId }: ContentCardProps) {
       <CardFooter className="border-t border-gray-200 bg-gray-50 p-3">
         <div className="flex justify-between items-center w-full">
           <div className="flex space-x-2">
-            {console.log("Expert Profile Platforms:", expertProfile?.platforms)}
-            
-            {/* Show all platform buttons for debugging, but mark unavailable ones */}
-            <Button 
-              variant={expertProfile?.platforms?.includes("linkedin") ? "outline" : "ghost"}
-              size="sm" 
-              className={`inline-flex items-center text-xs ${!expertProfile?.platforms?.includes("linkedin") ? "opacity-50" : ""}`}
-              onClick={() => handleCreateContent("linkedin")}
-              disabled={createContentIdeaMutation.isPending || !expertProfile?.platforms?.includes("linkedin")}
-              title={expertProfile?.platforms?.includes("linkedin") ? "Create LinkedIn content" : "LinkedIn not in your profile"}
-            >
-              <i className="fab fa-linkedin text-blue-600 mr-1"></i>
-              LinkedIn
-            </Button>
-            
-            <Button 
-              variant={expertProfile?.platforms?.includes("twitter") ? "outline" : "ghost"}
-              size="sm" 
-              className={`inline-flex items-center text-xs ${!expertProfile?.platforms?.includes("twitter") ? "opacity-50" : ""}`}
-              onClick={() => handleCreateContent("twitter")}
-              disabled={createContentIdeaMutation.isPending || !expertProfile?.platforms?.includes("twitter")}
-              title={expertProfile?.platforms?.includes("twitter") ? "Create Twitter content" : "Twitter not in your profile"}
-            >
-              <i className="fab fa-twitter text-blue-400 mr-1"></i>
-              Twitter
-            </Button>
-            
-            <Button 
-              variant={expertProfile?.platforms?.includes("instagram") ? "outline" : "ghost"}
-              size="sm" 
-              className={`inline-flex items-center text-xs ${!expertProfile?.platforms?.includes("instagram") ? "opacity-50" : ""}`}
-              onClick={() => handleCreateContent("instagram")}
-              disabled={createContentIdeaMutation.isPending || !expertProfile?.platforms?.includes("instagram")}
-              title={expertProfile?.platforms?.includes("instagram") ? "Create Instagram content" : "Instagram not in your profile"}
-            >
-              <i className="fab fa-instagram text-pink-600 mr-1"></i>
-              Instagram
-            </Button>
-            
-            <Button 
-              variant={expertProfile?.platforms?.includes("facebook") ? "outline" : "ghost"}
-              size="sm" 
-              className={`inline-flex items-center text-xs ${!expertProfile?.platforms?.includes("facebook") ? "opacity-50" : ""}`}
-              onClick={() => handleCreateContent("facebook")}
-              disabled={createContentIdeaMutation.isPending || !expertProfile?.platforms?.includes("facebook")}
-              title={expertProfile?.platforms?.includes("facebook") ? "Create Facebook content" : "Facebook not in your profile"}
-            >
-              <i className="fab fa-facebook text-blue-800 mr-1"></i>
-              Facebook
-            </Button>
+            {expertProfile?.platforms?.includes("linkedin") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("linkedin")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-linkedin text-blue-600 mr-1"></i>
+                Create
+              </Button>
+            )}
+            {expertProfile?.platforms?.includes("twitter") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("twitter")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-twitter text-blue-400 mr-1"></i>
+                Create
+              </Button>
+            )}
+            {expertProfile?.platforms?.includes("instagram") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("instagram")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-instagram text-pink-600 mr-1"></i>
+                Create
+              </Button>
+            )}
+            {expertProfile?.platforms?.includes("facebook") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="inline-flex items-center text-xs"
+                onClick={() => handleCreateContent("facebook")}
+                disabled={createContentIdeaMutation.isPending}
+              >
+                <i className="fab fa-facebook text-blue-800 mr-1"></i>
+                Create
+              </Button>
+            )}
           </div>
         </div>
       </CardFooter>
