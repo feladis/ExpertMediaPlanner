@@ -252,6 +252,7 @@ export const storage = new DatabaseStorage();
     if (!demoUser) {
       await storage.createExpert({
         username: "demo",
+        email: "demo@example.com", // Added email for the demo user
         password: "password", // Default password for the demo user
         name: "John Smith",
         role: "Marketing Consultant"
