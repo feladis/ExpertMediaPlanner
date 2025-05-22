@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Separator } from "@/components/ui/separator";
+import { ExpertProfile } from "@shared/schema";
 
 interface Viewpoint {
   id: number;
@@ -37,16 +38,18 @@ export default function ContentCard({ topic, expertId }: ContentCardProps) {
   const [viewpointsExpanded, setViewpointsExpanded] = useState(false);
   
   // Fetch viewpoints for this topic
-  const { data: viewpoints = [], isLoading: viewpointsLoading } = useQuery({
+  const { data: viewpoints = [], isLoading: viewpointsLoading } = useQuery<Viewpoint[]>({
     queryKey: [`/api/viewpoints/${topic.id}`],
     enabled: !!topic.id
   });
   
   // Fetch expert profile to get platforms
-  const { data: expertProfile } = useQuery({
+  const { data: expertProfile } = useQuery<ExpertProfile>({
     queryKey: [`/api/expert-profiles/${expertId}`],
     enabled: !!expertId
   });
+  
+  console.log("Expert Profile Platforms:", expertProfile?.platforms);
   
   // Create content idea mutation
   const createContentIdeaMutation = useMutation({
