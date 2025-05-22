@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { sessionMiddleware } from "./session";
+import { setupGoogleAuth } from "./auth";
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -41,7 +42,10 @@ app.use((req, res, next) => {
   // Set up session middleware
   app.use(sessionMiddleware);
   
-  const server = await registerRoutes(app);
+  // Set up Google authentication
+  const { requireAuth } = setupGoogleAuth(app);
+  
+  const server = await registerRoutes(app, requireAuth);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

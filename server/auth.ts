@@ -23,7 +23,7 @@ export function setupGoogleAuth(app: express.Express) {
       const email = profile.emails?.[0]?.value;
       
       if (!email) {
-        return done(new Error('No email provided by Google'), null);
+        return done(new Error('No email provided by Google'), false);
       }
       
       // Try to find existing user by email
@@ -49,7 +49,7 @@ export function setupGoogleAuth(app: express.Express) {
       return done(null, user);
     } catch (error) {
       console.error('Google auth error:', error);
-      return done(error, null);
+      return done(error, false);
     }
   }));
 
