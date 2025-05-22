@@ -7,18 +7,48 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { ContentIdea } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ContentEditorPage() {
   const [location] = useLocation();
   const ideaId = localStorage.getItem('selectedIdeaId') || null;
+  const selectedPlatform = localStorage.getItem('selectedPlatform') || '';
   const expertId = localStorage.getItem('expertId') ? 
     parseInt(localStorage.getItem('expertId') as string, 10) : 
     1; // Default to expertId 1 for demo
+  const { toast } = useToast();
 
   // Initialize content state
   const [content, setContent] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [status, setStatus] = useState<string>("draft");
+  const [activeTab, setActiveTab] = useState<string>("edit");
+  
+  // Platform-specific styling
+  const getPlatformColor = () => {
+    switch(selectedPlatform.toLowerCase()) {
+      case 'linkedin': return '#0077B5';
+      case 'twitter': case 'x': return '#1DA1F2';
+      case 'instagram': return 'linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D, #F56040, #F77737, #FCAF45, #FFDC80)';
+      case 'facebook': return '#4267B2';
+      case 'tiktok': return '#000000';
+      case 'youtube': return '#FF0000';
+      default: return '#0984E3';
+    }
+  };
+  
+  const getPlatformIcon = () => {
+    switch(selectedPlatform.toLowerCase()) {
+      case 'linkedin': return 'fa-linkedin';
+      case 'twitter': case 'x': return 'fa-twitter';
+      case 'instagram': return 'fa-instagram';
+      case 'facebook': return 'fa-facebook';
+      case 'tiktok': return 'fa-tiktok';
+      case 'youtube': return 'fa-youtube';
+      default: return 'fa-globe';
+    }
+  };
 
   // Fetch content idea details
   const { data: idea, isLoading } = useQuery<ContentIdea>({
@@ -84,6 +114,50 @@ export default function ContentEditorPage() {
     // TODO: Save content to the database
     // This would typically call an API endpoint to save the content
     console.log("Saving content:", { title, content, status: saveStatus });
+    
+    // Show success message
+    toast({
+      title: saveStatus === 'draft' ? "Draft saved!" : "Content published!",
+      description: saveStatus === 'draft' 
+        ? "Your content draft has been saved." 
+        : "Your content has been published successfully.",
+      duration: 3000
+    });
+  };
+  
+  // Simple markdown preview parser
+  const renderMarkdownPreview = () => {
+    if (!content) return <div className="text-gray-400 italic">No content to preview</div>;
+    
+    // Split content into lines for processing
+    const lines = content.split('\n');
+    
+    return (
+      <div className="prose max-w-none">
+        {lines.map((line, index) => {
+          // Handle headings
+          if (line.startsWith('# ')) {
+            return <h1 key={index} className="text-2xl font-bold mt-4 mb-2">{line.substring(2)}</h1>;
+          } else if (line.startsWith('## ')) {
+            return <h2 key={index} className="text-xl font-bold mt-3 mb-2">{line.substring(3)}</h2>;
+          } else if (line.startsWith('### ')) {
+            return <h3 key={index} className="text-lg font-bold mt-2 mb-1">{line.substring(4)}</h3>;
+          } 
+          // Handle lists
+          else if (line.startsWith('- ')) {
+            return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
+          } 
+          // Handle empty lines as breaks
+          else if (line.trim() === '') {
+            return <div key={index} className="h-4"></div>;
+          } 
+          // Regular paragraphs
+          else {
+            return <p key={index} className="my-2">{line}</p>;
+          }
+        })}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -130,18 +204,48 @@ export default function ContentEditorPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[#2D3436]">Content Editor</h1>
+        <div className="flex items-center">
+          <h1 className="text-2xl font-bold text-[#2D3436]">Content Editor</h1>
+          {selectedPlatform && (
+            <div 
+              className="ml-3 px-3 py-1 text-white rounded-full flex items-center" 
+              style={{background: getPlatformColor()}}
+            >
+              <i className={`fab ${getPlatformIcon()} mr-1`}></i>
+              <span className="capitalize">{selectedPlatform}</span>
+            </div>
+          )}
+          {idea?.format && (
+            <div className="ml-3 px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm">
+              {idea.format}
+            </div>
+          )}
+        </div>
         <div className="flex space-x-2">
           <Button 
             variant="outline"
-            onClick={() => handleSave('draft')}
+            onClick={() => window.history.back()}
+            size="sm"
+            className="text-gray-600"
           >
+            <i className="fas fa-arrow-left mr-1"></i>
+            Back to Ideas
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => handleSave('draft')}
+            size="sm"
+          >
+            <i className="fas fa-save mr-1"></i>
             Save Draft
           </Button>
           <Button 
-            className="bg-[#0984E3] hover:bg-blue-700 text-white"
+            style={{background: getPlatformColor()}}
+            className="hover:opacity-90 text-white transition-opacity"
             onClick={() => handleSave('published')}
+            size="sm"
           >
+            <i className="fas fa-paper-plane mr-1"></i>
             Publish
           </Button>
         </div>
@@ -149,21 +253,36 @@ export default function ContentEditorPage() {
 
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="flex-shrink-0 bg-blue-100 rounded-full p-2">
-              <i className={`fas fa-${idea?.platform === 'linkedin' ? 'linkedin' : idea?.platform === 'twitter' ? 'twitter' : 'instagram'} text-blue-600`}></i>
+          <div className="flex items-center space-x-2">
+            <div 
+              className="flex-shrink-0 rounded-full p-2" 
+              style={{background: `${selectedPlatform ? getPlatformColor() : '#0984E3'}20`}} // 20 is for 20% opacity
+            >
+              <i 
+                className={`fab ${getPlatformIcon()} text-xl`} 
+                style={{color: getPlatformColor()}}
+              ></i>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-600">Platform:</span>
-              <span className="text-sm ml-1 capitalize">{idea?.platform}</span>
+              <span className="text-sm ml-1 capitalize">{idea?.platform || selectedPlatform || 'Unknown'}</span>
             </div>
             <div className="ml-4">
               <span className="text-sm font-medium text-gray-600">Format:</span>
-              <span className="text-sm ml-1">{idea?.format}</span>
+              <span className="text-sm ml-1">{idea?.format || 'Not specified'}</span>
             </div>
-            <div className="ml-auto">
-              <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+            <div className="ml-auto flex items-center">
+              <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full mr-3">
                 {status === 'draft' ? 'Draft' : 'Published'}
+              </span>
+              <span 
+                className="text-xs px-2 py-1 rounded-full text-white"
+                style={{background: getPlatformColor()}}
+              >
+                {idea?.platform === 'linkedin' ? 'LinkedIn Post' : 
+                 idea?.platform === 'twitter' ? 'Twitter/X Post' : 
+                 idea?.platform === 'instagram' ? 'Instagram Content' : 
+                 `${idea?.platform || selectedPlatform || 'Social Media'} Content`}
               </span>
             </div>
           </div>
@@ -183,45 +302,82 @@ export default function ContentEditorPage() {
         />
       </div>
 
-      <div>
-        <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-          Content
-        </label>
-        <Textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full min-h-[400px]"
-          placeholder="Write your content here..."
-        />
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-2">
+          <TabsTrigger value="edit" className="flex items-center">
+            <i className="fas fa-edit mr-1"></i> Edit
+          </TabsTrigger>
+          <TabsTrigger value="preview" className="flex items-center">
+            <i className="fas fa-eye mr-1"></i> Preview
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="edit" className="border p-0">
+          <Textarea
+            id="content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full min-h-[400px] border-0 focus:ring-0"
+            placeholder="Write your content here..."
+          />
+        </TabsContent>
+        
+        <TabsContent value="preview" className="border p-4 min-h-[400px] bg-white">
+          {renderMarkdownPreview()}
+        </TabsContent>
+      </Tabs>
 
-      <div className="mt-4 p-4 bg-gray-50 rounded-md">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Reference Material</h3>
-        <div className="text-xs text-gray-600">
-          <p className="mb-2"><strong>Description:</strong> {idea?.description || 'No description available'}</p>
-          
-          <p className="mb-1"><strong>Key Points:</strong></p>
-          <ul className="list-disc list-inside mb-2">
-            {idea?.keyPoints && idea.keyPoints.length > 0 ? (
-              idea.keyPoints.map((point, idx) => (
-                <li key={idx}>{point}</li>
-              ))
-            ) : (
-              <li>No key points available</li>
-            )}
-          </ul>
-          
-          <p className="mb-1"><strong>Sources:</strong></p>
-          <ul className="list-disc list-inside">
-            {idea?.sources && idea.sources.length > 0 ? (
-              idea.sources.map((source, idx) => (
-                <li key={idx}>{source}</li>
-              ))
-            ) : (
-              <li>No sources available</li>
-            )}
-          </ul>
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <i className="fas fa-lightbulb text-yellow-500 mr-2"></i>
+              Key Points
+            </h3>
+            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+              {idea?.keyPoints && idea.keyPoints.length > 0 ? (
+                idea.keyPoints.map((point, idx) => (
+                  <li key={idx} className="hover:bg-gray-50 p-1 rounded-sm transition-colors">{point}</li>
+                ))
+              ) : (
+                <li className="text-gray-400 italic">No key points available</li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <i className="fas fa-book-open text-blue-500 mr-2"></i>
+              Research Sources
+            </h3>
+            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+              {idea?.sources && idea.sources.length > 0 ? (
+                idea.sources.map((source, idx) => (
+                  <li key={idx} className="hover:bg-gray-50 p-1 rounded-sm transition-colors">{source}</li>
+                ))
+              ) : (
+                <li className="text-gray-400 italic">No sources available</li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="mt-6 flex justify-between items-center">
+        <Button
+          className="text-white transition-opacity"
+          style={{background: getPlatformColor()}}
+          onClick={() => handleSave(status)}
+        >
+          <i className="fas fa-save mr-2"></i>
+          {status === 'draft' ? "Save Draft" : "Publish Content"}
+        </Button>
+        
+        <div className="text-sm text-gray-500 flex items-center">
+          <i className="fas fa-info-circle mr-1"></i>
+          Content optimized for {selectedPlatform || idea?.platform || 'social media'}
         </div>
       </div>
     </div>

@@ -325,12 +325,26 @@ export default function PlatformContentPage() {
                     <div className="flex justify-between items-center mt-4">
                       <Button 
                         size="sm" 
-                        className="inline-flex items-center px-3 py-1 text-xs"
+                        className="inline-flex items-center px-3 py-1 text-xs bg-[#0984E3] hover:bg-blue-700 text-white"
                         onClick={() => {
+                          // Store both the idea ID and platform for better context
                           localStorage.setItem('selectedIdeaId', idea.id.toString());
-                          window.location.href = `/content-editor`;
+                          localStorage.setItem('selectedPlatform', idea.platform);
+                          
+                          // Use a transition message to improve UX
+                          toast({
+                            title: "Opening editor",
+                            description: `Preparing content for ${idea.title}`,
+                            duration: 2000
+                          });
+                          
+                          // Short delay for toast to be visible before redirect
+                          setTimeout(() => {
+                            window.location.href = `/content-editor`;
+                          }, 300);
                         }}
                       >
+                        <i className="fas fa-edit mr-1"></i>
                         Create Content
                       </Button>
                       <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
