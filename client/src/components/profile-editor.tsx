@@ -48,12 +48,57 @@ export default function ProfileEditor({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (limit to 500KB)
+      if (file.size > 500 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 500KB",
+          variant: "destructive",
+          duration: 3000
+        });
+        return;
+      }
+      
       // Convert file to base64 for preview and storage
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        setProfileImage(base64String);
-        setPreviewUrl(base64String);
+        
+        // Compress the image before storing
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          let width = img.width;
+          let height = img.height;
+          
+          // Resize if needed (max 300px width/height)
+          const maxSize = 300;
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > width && height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          } else if (width > maxSize && height > maxSize) {
+            width = height = maxSize;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw and compress
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Get compressed data (0.8 quality)
+          const compressedImage = canvas.toDataURL('image/jpeg', 0.8);
+          
+          setProfileImage(compressedImage);
+          setPreviewUrl(compressedImage);
+        };
+        img.src = base64String;
       };
       reader.readAsDataURL(file);
     }
