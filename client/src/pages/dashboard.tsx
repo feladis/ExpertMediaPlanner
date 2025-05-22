@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ContentCard from "@/components/content-card";
-import PlatformContent from "@/components/platform-content";
+// PlatformContent import removed - now has its own page
 import ProfileWizard from "@/components/profile-wizard";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -311,13 +311,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
         )}
       </div>
 
-      {/* Platform-Specific Content Ideas */}
-      {topics.length > 0 && (
-        <PlatformContent 
-          topicId={topics[0]?.id} 
-          expertId={expert.id} 
-        />
-      )}
+      {/* Platform-Specific Content Ideas section removed - now has its own page */}
       
       {/* Profile wizard dialog */}
       <ProfileWizard 

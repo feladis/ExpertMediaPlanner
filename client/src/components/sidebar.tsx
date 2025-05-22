@@ -61,7 +61,18 @@ export default function Sidebar({ expert, onLogout }: SidebarProps) {
               </Link>
             </div>
             
-            {/* Content Calendar feature removed as requested */}
+            <div className="mb-1">
+              <Link href="/platform-content">
+                <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-md cursor-pointer ${
+                  location === "/platform-content" 
+                    ? "text-white bg-[#0984E3]" 
+                    : "text-[#2D3436] hover:bg-[#F5F6FA]"
+                }`}>
+                  <i className="fas fa-share-alt mr-3"></i>
+                  Platform Content
+                </div>
+              </Link>
+            </div>
             
             <button
               onClick={onLogout}
