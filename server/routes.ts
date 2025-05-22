@@ -29,6 +29,15 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
     });
   };
 
+  // Check auth status endpoint
+  app.get('/api/auth/check', (req: Request, res: Response) => {
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      res.json({ authenticated: true, user: req.user });
+    } else {
+      res.json({ authenticated: false });
+    }
+  });
+
   // Experts API
   app.post('/api/experts', async (req: Request, res: Response) => {
     try {

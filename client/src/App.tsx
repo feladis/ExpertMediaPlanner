@@ -24,18 +24,37 @@ export interface Expert {
 }
 
 function App() {
-  const { user: expert, isLoading, login, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
+  const [expert, setExpert] = useState<Expert | null>(null);
+  
+  // Check for stored expert data on initial load
+  useEffect(() => {
+    const storedExpert = localStorage.getItem('expert');
+    if (storedExpert) {
+      setExpert(JSON.parse(storedExpert));
+    }
+  }, []);
+  
+  // Save expert data to localStorage when it changes
+  useEffect(() => {
+    if (expert) {
+      localStorage.setItem('expert', JSON.stringify(expert));
+    }
+  }, [expert]);
   
   const handleLogin = (loggedInExpert: Expert) => {
-    login(loggedInExpert);
+    setExpert(loggedInExpert);
     setLocation("/"); // Redirect to dashboard after login
   };
   
   const handleLogout = () => {
-    logout();
-    // The redirect will be handled by the server after logout
+    // First clear local storage
+    localStorage.removeItem('expert');
+    setExpert(null);
+    
+    // Then redirect to Google logout endpoint
+    window.location.href = '/api/auth/logout';
   };
   
   const toggleSidebar = () => {
@@ -44,10 +63,10 @@ function App() {
   
   // If no expert exists and not at login page, redirect to login
   useEffect(() => {
-    if (!isLoading && !expert && location !== "/login" && location !== "/content-editor") {
+    if (!expert && location !== "/login" && location !== "/content-editor") {
       setLocation("/login");
     }
-  }, [expert, isLoading, location, setLocation]);
+  }, [expert, location, setLocation]);
   
   return (
     <QueryClientProvider client={queryClient}>
