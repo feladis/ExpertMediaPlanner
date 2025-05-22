@@ -74,8 +74,8 @@ export default function ProfileEditor({
 
       // Send update request to the API
       const response = await apiRequest(
-        `/api/experts/${expert.id}`,
         "PATCH",
+        `/api/experts/${expert.id}`,
         updateData
       );
 
