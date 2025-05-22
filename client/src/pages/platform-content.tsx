@@ -21,10 +21,10 @@ export default function PlatformContentPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("linkedin");
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   
-  // Get the expert ID from localStorage (set when logging in)
+  // Get the expert ID from localStorage (set when logging in) or use default ID 1 for demo
   const expertId = localStorage.getItem('expertId') ? 
     parseInt(localStorage.getItem('expertId') as string, 10) : 
-    null;
+    1; // Default to expertId 1 for demo
   
   // Fetch expert profile to get platforms
   const { data: expertProfile } = useQuery<ExpertProfile>({
@@ -64,7 +64,11 @@ export default function PlatformContentPage() {
   
   // Function to handle topic change
   const handleTopicChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedTopicId(parseInt(event.target.value, 10));
+    if (event.target.value) {
+      setSelectedTopicId(parseInt(event.target.value, 10));
+    } else {
+      setSelectedTopicId(null);
+    }
   };
   
   return (
@@ -77,15 +81,19 @@ export default function PlatformContentPage() {
         </label>
         <select
           id="topic-select"
-          className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
           value={selectedTopicId || ""}
           onChange={handleTopicChange}
         >
-          {topics.map((topic: any) => (
-            <option key={topic.id} value={topic.id}>
-              {topic.title}
-            </option>
-          ))}
+          {Array.isArray(topics) && topics.length > 0 ? (
+            topics.map((topic: any) => (
+              <option key={topic.id} value={topic.id}>
+                {topic.title}
+              </option>
+            ))
+          ) : (
+            <option value="">No topics available</option>
+          )}
         </select>
       </div>
       
