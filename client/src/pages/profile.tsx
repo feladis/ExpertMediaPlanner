@@ -28,7 +28,7 @@ export default function ProfilePage({ expert }: ProfilePageProps) {
   const { toast } = useToast();
   
   // Fetch expert profile
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading } = useQuery<any>({
     queryKey: [`/api/expert-profiles/${expert?.id}`],
     enabled: !!expert?.id
   });
@@ -67,7 +67,7 @@ export default function ProfilePage({ expert }: ProfilePageProps) {
             className="inline-flex items-center text-[#0984E3]"
             onClick={() => setProfileEditorOpen(true)}
           >
-            <i className="fas fa-user-edit mr-2"></i>
+            <span className="mr-2">✏️</span>
             Edit Personal Info
           </Button>
           {profile && (
@@ -76,7 +76,7 @@ export default function ProfilePage({ expert }: ProfilePageProps) {
               className="inline-flex items-center text-[#0984E3]"
               onClick={() => setProfileWizardOpen(true)}
             >
-              <i className="fas fa-edit mr-2"></i>
+              <span className="mr-2">🔧</span>
               Edit Expertise
             </Button>
           )}

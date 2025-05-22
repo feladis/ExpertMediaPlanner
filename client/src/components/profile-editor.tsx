@@ -30,10 +30,10 @@ export default function ProfileEditor({
   onProfileUpdated
 }: ProfileEditorProps) {
   const [name, setName] = useState(expert.name);
-  const [role, setRole] = useState(expert.role);
+  const [role, setRole] = useState(expert.role || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | undefined>(expert.profileImage);
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(expert.profileImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -69,7 +69,7 @@ export default function ProfileEditor({
       const updateData = {
         name,
         role,
-        profileImage: profileImage
+        profileImage: profileImage || undefined
       };
 
       // Send update request to the API
