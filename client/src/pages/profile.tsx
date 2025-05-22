@@ -8,12 +8,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
 import { Expert } from "../App";
 import ProfileWizard from "@/components/profile-wizard";
+import ProfileEditor from "@/components/profile-editor";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfilePageProps {
   expert: Expert | null;
@@ -21,6 +23,9 @@ interface ProfilePageProps {
 
 export default function ProfilePage({ expert }: ProfilePageProps) {
   const [profileWizardOpen, setProfileWizardOpen] = useState(false);
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  const [currentExpert, setCurrentExpert] = useState<Expert | null>(expert);
+  const { toast } = useToast();
   
   // Fetch expert profile
   const { data: profile, isLoading } = useQuery({
@@ -35,22 +40,47 @@ export default function ProfilePage({ expert }: ProfilePageProps) {
     }
   }, [expert, profile, isLoading]);
   
-  if (!expert) return null;
+  // Update expert state when prop changes
+  useEffect(() => {
+    setCurrentExpert(expert);
+  }, [expert]);
+  
+  // Handle the personal information update
+  const handleProfileUpdate = (updatedExpert: Expert) => {
+    setCurrentExpert(updatedExpert);
+    toast({
+      title: "Profile Updated",
+      description: "Your personal information has been successfully updated.",
+      duration: 3000
+    });
+  };
+  
+  if (!currentExpert) return null;
   
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-[#2D3436]">My Profile</h1>
-        {profile && (
+        <div className="flex space-x-2">
           <Button 
             variant="outline" 
             className="inline-flex items-center text-[#0984E3]"
-            onClick={() => setProfileWizardOpen(true)}
+            onClick={() => setProfileEditorOpen(true)}
           >
-            <i className="fas fa-edit mr-2"></i>
-            Edit Profile
+            <i className="fas fa-user-edit mr-2"></i>
+            Edit Personal Info
           </Button>
-        )}
+          {profile && (
+            <Button 
+              variant="outline" 
+              className="inline-flex items-center text-[#0984E3]"
+              onClick={() => setProfileWizardOpen(true)}
+            >
+              <i className="fas fa-edit mr-2"></i>
+              Edit Expertise
+            </Button>
+          )}
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -63,13 +93,17 @@ export default function ProfilePage({ expert }: ProfilePageProps) {
           <CardContent>
             <div className="flex flex-col items-center">
               <Avatar className="h-24 w-24 mb-4">
-                <AvatarFallback className="bg-[#0984E3] text-white text-xl">
-                  {expert.name.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
+                {currentExpert.profileImage ? (
+                  <AvatarImage src={currentExpert.profileImage} alt={currentExpert.name} />
+                ) : (
+                  <AvatarFallback className="bg-[#0984E3] text-white text-xl">
+                    {currentExpert.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                )}
               </Avatar>
               
-              <h3 className="text-lg font-medium">{expert.name}</h3>
-              <p className="text-sm text-gray-500 mb-4">{expert.role}</p>
+              <h3 className="text-lg font-medium">{currentExpert.name}</h3>
+              <p className="text-sm text-gray-500 mb-4">{currentExpert.role}</p>
               
               {isLoading ? (
                 <div className="w-full space-y-2">
@@ -228,8 +262,16 @@ export default function ProfilePage({ expert }: ProfilePageProps) {
       <ProfileWizard 
         open={profileWizardOpen} 
         onOpenChange={setProfileWizardOpen}
-        expertId={expert.id}
+        expertId={currentExpert.id}
         onProfileComplete={() => {}}
+      />
+      
+      {/* Personal information editor dialog */}
+      <ProfileEditor 
+        open={profileEditorOpen}
+        onOpenChange={setProfileEditorOpen}
+        expert={currentExpert}
+        onProfileUpdated={handleProfileUpdate}
       />
     </div>
   );

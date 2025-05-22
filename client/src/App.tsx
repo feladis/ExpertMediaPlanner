@@ -18,6 +18,7 @@ export interface Expert {
   name: string;
   role: string;
   profileComplete: boolean;
+  profileImage?: string;
 }
 
 function App() {
