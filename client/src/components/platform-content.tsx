@@ -38,13 +38,13 @@ export default function PlatformContent({ topicId, expertId }: PlatformContentPr
     }
   }, [expertProfile]);
   
-  const { data: contentIdeas = [], isLoading } = useQuery({
+  const { data: contentIdeas = [], isLoading } = useQuery<ContentIdea[]>({
     queryKey: [`/api/content-ideas/${topicId}`, selectedPlatform],
     enabled: !!topicId
   });
   
   const filteredIdeas = contentIdeas.filter(
-    (idea: ContentIdea) => idea.platform === selectedPlatform
+    (idea) => idea.platform === selectedPlatform
   );
   
   return (
@@ -52,39 +52,58 @@ export default function PlatformContent({ topicId, expertId }: PlatformContentPr
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-[#2D3436]">Platform-Specific Content Ideas</h2>
         <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className={`text-xs ${selectedPlatform === "linkedin" 
-              ? "text-[#0984E3] border-[#0984E3]" 
-              : "text-gray-500 border-gray-300"}`}
-            onClick={() => setSelectedPlatform("linkedin")}
-          >
-            <i className="fab fa-linkedin mr-1"></i>
-            LinkedIn
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className={`text-xs ${selectedPlatform === "twitter" 
-              ? "text-[#0984E3] border-[#0984E3]" 
-              : "text-gray-500 border-gray-300"}`}
-            onClick={() => setSelectedPlatform("twitter")}
-          >
-            <i className="fab fa-twitter mr-1"></i>
-            Twitter
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className={`text-xs ${selectedPlatform === "instagram" 
-              ? "text-[#0984E3] border-[#0984E3]" 
-              : "text-gray-500 border-gray-300"}`}
-            onClick={() => setSelectedPlatform("instagram")}
-          >
-            <i className="fab fa-instagram mr-1"></i>
-            Instagram
-          </Button>
+          {expertProfile?.platforms?.includes("linkedin") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={`text-xs ${selectedPlatform === "linkedin" 
+                ? "text-[#0984E3] border-[#0984E3]" 
+                : "text-gray-500 border-gray-300"}`}
+              onClick={() => setSelectedPlatform("linkedin")}
+            >
+              <i className="fab fa-linkedin mr-1"></i>
+              LinkedIn
+            </Button>
+          )}
+          {expertProfile?.platforms?.includes("twitter") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={`text-xs ${selectedPlatform === "twitter" 
+                ? "text-[#0984E3] border-[#0984E3]" 
+                : "text-gray-500 border-gray-300"}`}
+              onClick={() => setSelectedPlatform("twitter")}
+            >
+              <i className="fab fa-twitter mr-1"></i>
+              Twitter
+            </Button>
+          )}
+          {expertProfile?.platforms?.includes("instagram") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={`text-xs ${selectedPlatform === "instagram" 
+                ? "text-[#0984E3] border-[#0984E3]" 
+                : "text-gray-500 border-gray-300"}`}
+              onClick={() => setSelectedPlatform("instagram")}
+            >
+              <i className="fab fa-instagram mr-1"></i>
+              Instagram
+            </Button>
+          )}
+          {expertProfile?.platforms?.includes("facebook") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={`text-xs ${selectedPlatform === "facebook" 
+                ? "text-[#0984E3] border-[#0984E3]" 
+                : "text-gray-500 border-gray-300"}`}
+              onClick={() => setSelectedPlatform("facebook")}
+            >
+              <i className="fab fa-facebook mr-1"></i>
+              Facebook
+            </Button>
+          )}
         </div>
       </div>
       
@@ -134,7 +153,7 @@ export default function PlatformContent({ topicId, expertId }: PlatformContentPr
             </Card>
           </>
         ) : filteredIdeas.length > 0 ? (
-          filteredIdeas.map((idea: ContentIdea) => (
+          filteredIdeas.map((idea) => (
             <Card key={idea.id} className="bg-white rounded-lg shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-start">
