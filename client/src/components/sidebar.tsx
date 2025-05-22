@@ -29,8 +29,8 @@ export default function Sidebar({ expert, onLogout }: SidebarProps) {
                     ? "text-white bg-[#0984E3]" 
                     : "text-[#2D3436] hover:bg-[#F5F6FA]"
                 }`}>
-                  <i className="fas fa-columns mr-3"></i>
-                  Dashboard
+                  <i className="fas fa-list-ul mr-3"></i>
+                  Topic Ideas
                 </div>
               </Link>
             </div>
