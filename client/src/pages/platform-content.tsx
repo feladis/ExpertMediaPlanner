@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExpertProfile } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
 
 interface ContentIdea {
   id: number;
@@ -71,14 +73,63 @@ export default function PlatformContentPage() {
     }
   };
   
+  // Create content idea mutation
+  const createContentIdeaMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTopicId || !selectedPlatform) {
+        throw new Error("Please select a topic and platform");
+      }
+      return apiRequest('POST', '/api/generate-content-ideas', {
+        topicId: selectedTopicId,
+        platform: selectedPlatform,
+        expertId
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/content-ideas/${selectedTopicId}`] });
+      toast({
+        title: "Success!",
+        description: `New content ideas for ${selectedPlatform} created successfully.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to create content ideas: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-[#2D3436] mb-6">Platform-Specific Content Ideas</h1>
       
       <div className="mb-6">
-        <label htmlFor="topic-select" className="block text-sm font-medium text-gray-700 mb-2">
-          Select a Topic
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="topic-select" className="block text-sm font-medium text-gray-700 mb-2">
+            Select a Topic
+          </label>
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="bg-[#0984E3] hover:bg-blue-700 text-white mb-2"
+            onClick={() => createContentIdeaMutation.mutate()}
+            disabled={createContentIdeaMutation.isPending || !selectedTopicId}
+          >
+            {createContentIdeaMutation.isPending ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+                Generating...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-plus mr-2"></i>
+                Create Content Ideas
+              </>
+            )}
+          </Button>
+        </div>
         <select
           id="topic-select"
           className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
