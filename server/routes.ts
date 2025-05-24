@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -13,7 +13,7 @@ import { generateTopics, generateContentIdeas } from "./anthropic";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
-export async function registerRoutes(app: Express, requireAuth?: (req: Request, res: Response, next: NextFunction) => void): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<Server> {
   // Error handling middleware
   const handleError = (err: any, res: Response) => {
     console.error(err);
@@ -28,15 +28,6 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
       message: err.message || 'Internal server error' 
     });
   };
-
-  // Check auth status endpoint
-  app.get('/api/auth/check', (req: Request, res: Response) => {
-    if (req.isAuthenticated && req.isAuthenticated()) {
-      res.json({ authenticated: true, user: req.user });
-    } else {
-      res.json({ authenticated: false });
-    }
-  });
 
   // Experts API
   app.post('/api/experts', async (req: Request, res: Response) => {
@@ -416,132 +407,7 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
     }
   });
 
-  // Email verification
-  app.post('/api/verify/send-code', async (req: Request, res: Response) => {
-    try {
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ message: 'Email is required' });
-      }
-      
-      // Import email functions dynamically to avoid circular dependencies
-      const { generateVerificationCode, saveVerificationCode, sendVerificationEmail } = await import('./email');
-      
-      // Generate a verification code
-      const code = generateVerificationCode();
-      
-      // Save the code to the database
-      await saveVerificationCode(email, code);
-      
-      // Send the verification email
-      const emailSent = await sendVerificationEmail(email, code);
-      
-      if (emailSent) {
-        res.json({ message: 'Verification code sent' });
-      } else {
-        res.status(500).json({ message: 'Failed to send verification email' });
-      }
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
-  
-  app.post('/api/verify/check-code', async (req: Request, res: Response) => {
-    try {
-      const { email, code } = req.body;
-      
-      if (!email || !code) {
-        return res.status(400).json({ message: 'Email and verification code are required' });
-      }
-      
-      // Import verification function
-      const { verifyCode } = await import('./email');
-      
-      // Check if the code is valid
-      const isValid = await verifyCode(email, code);
-      
-      if (isValid) {
-        res.json({ verified: true });
-      } else {
-        res.status(400).json({ 
-          verified: false, 
-          message: 'Invalid or expired verification code' 
-        });
-      }
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
-  
-  // User registration with email verification
-  app.post('/api/register', async (req: Request, res: Response) => {
-    try {
-      const { username, password, name, role, email, verificationCode } = req.body;
-      
-      if (!username || !password || !name || !email || !verificationCode) {
-        return res.status(400).json({ 
-          message: 'Username, password, name, email and verification code are required' 
-        });
-      }
-      
-      // First verify the email code
-      const { verifyCode } = await import('./email');
-      const isVerified = await verifyCode(email, verificationCode);
-      
-      if (!isVerified) {
-        return res.status(400).json({ 
-          message: 'Invalid or expired verification code' 
-        });
-      }
-      
-      // Check if the user already exists
-      const existingUser = await storage.getExpertByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ message: 'Username already exists' });
-      }
-      
-      // Check if the email is already registered
-      const existingEmail = await storage.getExpertByEmail(email);
-      if (existingEmail) {
-        return res.status(400).json({ message: 'Email already registered' });
-      }
-      
-      // Create the new user
-      const userData = insertExpertSchema.parse({
-        username,
-        password,
-        name,
-        role,
-        email
-      });
-      
-      const expert = await storage.createExpert(userData);
-      
-      // Store user in session
-      if (req.session) {
-        req.session.user = {
-          id: expert.id,
-          username: expert.username,
-          name: expert.name,
-          role: expert.role,
-          profileComplete: expert.profileComplete
-        };
-      }
-      
-      res.status(201).json({
-        id: expert.id,
-        username: expert.username,
-        name: expert.name,
-        role: expert.role,
-        profileComplete: expert.profileComplete
-      });
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
-  
-  // Enhanced authentication with sessions
+  // Simple authentication for demo purposes
   app.post('/api/login', async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
@@ -556,17 +422,6 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
-      // Store user in session
-      if (req.session) {
-        req.session.user = {
-          id: expert.id,
-          username: expert.username,
-          name: expert.name,
-          role: expert.role,
-          profileComplete: expert.profileComplete
-        };
-      }
-      
       res.json({
         id: expert.id,
         username: expert.username,
@@ -576,46 +431,6 @@ export async function registerRoutes(app: Express, requireAuth?: (req: Request, 
       });
     } catch (err) {
       handleError(err, res);
-    }
-  });
-  
-  // Session-based user check
-  app.get('/api/me', async (req: Request, res: Response) => {
-    try {
-      if (req.session && req.session.user) {
-        const userId = req.session.user.id;
-        const expert = await storage.getExpert(userId);
-        
-        if (expert) {
-          return res.json({
-            id: expert.id,
-            username: expert.username,
-            name: expert.name,
-            role: expert.role,
-            profileComplete: expert.profileComplete,
-            profileImage: expert.profileImage
-          });
-        }
-      }
-      
-      res.status(401).json({ message: 'Not authenticated' });
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
-  
-  // Logout endpoint
-  app.post('/api/logout', (req: Request, res: Response) => {
-    if (req.session) {
-      req.session.destroy((err) => {
-        if (err) {
-          return res.status(500).json({ message: 'Failed to logout' });
-        }
-        
-        res.json({ message: 'Logged out successfully' });
-      });
-    } else {
-      res.json({ message: 'Already logged out' });
     }
   });
 

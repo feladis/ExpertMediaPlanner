@@ -9,7 +9,6 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Expert } from "../App";
-import RegisterForm from "@/components/register-form";
 import {
   Form,
   FormControl,
@@ -215,30 +214,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                       {loginMutation.isPending ? "Logging in..." : "Login"}
                     </Button>
                     
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-gray-300" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-[#F5F6FA] px-2 text-gray-500">Or continue with</span>
-                      </div>
-                    </div>
-                    
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      className="w-full flex items-center justify-center gap-2"
-                      onClick={() => window.location.href = '/api/login'}
-                      disabled={loginMutation.isPending}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 75 75" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M37.5 0C16.8 0 0 16.8 0 37.5C0 58.2 16.8 75 37.5 75C58.2 75 75 58.2 75 37.5C75 16.8 58.2 0 37.5 0Z" fill="#F26207"/>
-                        <path d="M56.25 46.9C54.9 46.9 53.7 46.3 52.8 45.4L45.45 38.05C44.55 37.15 43.95 35.95 43.95 34.6C43.95 33.25 44.55 32.05 45.45 31.15L52.8 23.8C53.7 22.9 54.9 22.3 56.25 22.3C58.95 22.3 61.15 24.5 61.15 27.2C61.15 28.55 60.55 29.75 59.65 30.65L54.75 35.55C54.3 36 54.3 36.75 54.75 37.2L59.65 42.1C60.55 43 61.15 44.2 61.15 45.55C61.15 48.25 58.95 46.9 56.25 46.9Z" fill="white"/>
-                        <path d="M18.75 46.9C16.05 46.9 13.85 44.7 13.85 42C13.85 40.65 14.45 39.45 15.35 38.55L20.25 33.65C20.7 33.2 20.7 32.45 20.25 32L15.35 27.1C14.45 26.2 13.85 25 13.85 23.65C13.85 20.95 16.05 18.75 18.75 18.75C20.1 18.75 21.3 19.35 22.2 20.25L29.55 27.6C30.45 28.5 31.05 29.7 31.05 31.05C31.05 32.4 30.45 33.6 29.55 34.5L22.2 41.85C21.3 42.75 20.1 46.9 18.75 46.9Z" fill="white"/>
-                      </svg>
-                      Sign in with Replit
-                    </Button>
-                    
                     <div className="text-center text-sm text-gray-500 mt-4">
                       <p>Demo credentials are pre-filled (username: demo, password: password)</p>
                     </div>
@@ -247,10 +222,81 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </TabsContent>
               
               <TabsContent value="register">
-                <RegisterForm 
-                  onSuccess={onLogin}
-                  onCancel={() => setActiveTab("login")}
-                />
+                <Form {...registerForm}>
+                  <form onSubmit={registerForm.handleSubmit(handleRegisterSubmit)} className="space-y-4">
+                    <FormField
+                      control={registerForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Smith" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={registerForm.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Professional Role</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Marketing Director" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={registerForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Choose a username" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={registerForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Choose a secure password" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-[#0984E3]"
+                      disabled={registerMutation.isPending}
+                    >
+                      {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                    </Button>
+                    
+                    <div className="text-center text-sm text-gray-500 mt-4">
+                      <p>Already have an account? <Button variant="link" className="p-0 h-auto" onClick={() => setActiveTab("login")}>Login</Button></p>
+                    </div>
+                  </form>
+                </Form>
               </TabsContent>
             </Tabs>
           </CardContent>

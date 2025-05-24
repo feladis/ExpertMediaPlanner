@@ -12,7 +12,6 @@ import ContentEditorPage from "@/pages/content-editor";
 import LoginPage from "@/pages/login";
 import Sidebar from "@/components/sidebar";
 import Topbar from "@/components/topbar";
-import { useAuth } from "@/hooks/useAuth";
 
 export interface Expert {
   id: number;
@@ -24,9 +23,9 @@ export interface Expert {
 }
 
 function App() {
+  const [expert, setExpert] = useState<Expert | null>(null);
   const [location, setLocation] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
-  const [expert, setExpert] = useState<Expert | null>(null);
   
   // Check for stored expert data on initial load
   useEffect(() => {
@@ -49,12 +48,9 @@ function App() {
   };
   
   const handleLogout = () => {
-    // First clear local storage
     localStorage.removeItem('expert');
     setExpert(null);
-    
-    // Then redirect to Google logout endpoint
-    window.location.href = '/api/auth/logout';
+    setLocation("/login"); // Redirect to login page
   };
   
   const toggleSidebar = () => {

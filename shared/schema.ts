@@ -6,7 +6,6 @@ import { z } from "zod";
 export const experts = pgTable("experts", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  email: text("email").unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
   role: text("role"),
@@ -76,16 +75,6 @@ export const scheduledContent = pgTable("scheduled_content", {
   status: text("status").default("draft"),
   scheduledDate: timestamp("scheduled_date"),
   content: text("content"),
-});
-
-// Email verification codes
-export const verificationCodes = pgTable("verification_codes", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull(),
-  code: text("code").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(),
-  verified: boolean("verified").default(false),
 });
 
 // Schema for inserting new experts
