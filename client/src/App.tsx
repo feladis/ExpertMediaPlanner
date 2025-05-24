@@ -9,7 +9,6 @@ import ProfilePage from "@/pages/profile";
 import ContentIdeas from "@/pages/content-ideas";
 import PlatformContent from "@/pages/platform-content";
 import ContentEditorPage from "@/pages/content-editor";
-import LoginPage from "@/pages/login";
 import Sidebar from "@/components/sidebar";
 import Topbar from "@/components/topbar";
 
@@ -24,7 +23,7 @@ export interface Expert {
 
 function App() {
   const [expert, setExpert] = useState<Expert | null>(null);
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
   
   // Check for stored expert data on initial load
@@ -44,25 +43,23 @@ function App() {
   
   const handleLogin = (loggedInExpert: Expert) => {
     setExpert(loggedInExpert);
-    setLocation("/"); // Redirect to dashboard after login
   };
   
   const handleLogout = () => {
     localStorage.removeItem('expert');
     setExpert(null);
-    setLocation("/login"); // Redirect to login page
   };
   
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
   };
   
-  // If no expert exists and not at login page, redirect to login
-  useEffect(() => {
-    if (!expert && location !== "/login" && location !== "/content-editor") {
-      setLocation("/login");
-    }
-  }, [expert, location, setLocation]);
+  // If no expert exists and not at login route, redirect to login
+  // Special case for content editor which should be accessible even if coming from direct link
+  if (!expert && location !== "/" && location !== "/content-editor") {
+    window.location.href = "/";
+    return null;
+  }
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -78,21 +75,12 @@ function App() {
           
           <main className="flex-1 relative overflow-y-auto focus:outline-none">
             <Switch>
-              {!expert ? (
-                <>
-                  <Route path="/login" component={() => <LoginPage onLogin={handleLogin} />} />
-                  <Route component={() => <LoginPage onLogin={handleLogin} />} />
-                </>
-              ) : (
-                <>
-                  <Route path="/" component={() => <Dashboard expert={expert} />} />
-                  <Route path="/profile" component={() => <ProfilePage expert={expert} />} />
-                  <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
-                  <Route path="/platform-content" component={() => <PlatformContent />} />
-                  <Route path="/content-editor" component={() => <ContentEditorPage />} />
-                  <Route component={NotFound} />
-                </>
-              )}
+              <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} />} />
+              <Route path="/profile" component={() => <ProfilePage expert={expert} />} />
+              <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
+              <Route path="/platform-content" component={() => <PlatformContent />} />
+              <Route path="/content-editor" component={() => <ContentEditorPage />} />
+              <Route component={NotFound} />
             </Switch>
           </main>
         </div>

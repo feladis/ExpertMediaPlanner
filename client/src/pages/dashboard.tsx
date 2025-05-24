@@ -4,24 +4,38 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ContentCard from "@/components/content-card";
+// PlatformContent import removed - now has its own page
 import ProfileWizard from "@/components/profile-wizard";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Expert } from "../App";
 import { useToast } from "@/hooks/use-toast";
-
-import WelcomeOnboarding from "@/components/welcome-onboarding";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface DashboardProps {
   expert: Expert | null;
+  onLogin: (expert: Expert) => void;
 }
 
-// Will be used if we need additional schemas for the dashboard page
+// Login form schema
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
 
-export default function Dashboard({ expert }: DashboardProps) {
+export default function Dashboard({ expert, onLogin }: DashboardProps) {
   const [profileWizardOpen, setProfileWizardOpen] = useState(false);
-  const [showWelcomeOnboarding, setShowWelcomeOnboarding] = useState(false);
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const { toast } = useToast();
   const currentDate = new Date();
   const weekStart = new Date(currentDate);
@@ -33,16 +47,55 @@ export default function Dashboard({ expert }: DashboardProps) {
     year: 'numeric' 
   });
   
+  // Login form
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "demo",
+      password: "password"
+    },
+  });
+  
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (values: z.infer<typeof loginSchema>) => {
+      const response = await apiRequest('POST', '/api/login', values);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      onLogin(data);
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${data.name}!`
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Handle login form submission
+  function onSubmit(values: z.infer<typeof loginSchema>) {
+    loginMutation.mutate(values);
+  }
+  
   // Check if expert profile exists
-  const { data: profile, isLoading: profileLoading } = useQuery<any>({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: [`/api/expert-profiles/${expert?.id}`],
     enabled: !!expert?.id
   });
   
   // Query topics
-  const { data: topics = [], isLoading: topicsLoading } = useQuery<any>({
+  const { data: topics = [], isLoading: topicsLoading } = useQuery({
     queryKey: [`/api/topics/${expert?.id}`],
-    enabled: !!expert?.id
+    enabled: !!expert?.id,
+    onSuccess: (data) => {
+      console.log("Topics loaded:", data);
+    }
   });
   
   // Generate topics mutation
@@ -62,7 +115,7 @@ export default function Dashboard({ expert }: DashboardProps) {
         description: `${data.length} new content topics have been created for you.`
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error("Topic generation error:", error);
       toast({
         title: "Error generating topics",
@@ -72,43 +125,84 @@ export default function Dashboard({ expert }: DashboardProps) {
     }
   });
   
-  // Check for first-time login and show welcome onboarding
+  // If no expert exists, show login form
+  if (!expert) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F6FA]">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="flex justify-center mb-6">
+              <div className="text-xl font-semibold text-[#2D3436] flex items-center">
+                <i className="fas fa-brain mr-2 text-[#0984E3]"></i>
+                ExpertPlanner
+              </div>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-center mb-6">Login to Your Account</h1>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-[#0984E3]"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? "Logging in..." : "Login"}
+                </Button>
+              </form>
+            </Form>
+            
+            <div className="mt-6 text-center text-sm text-gray-500">
+              <p>Demo credentials are pre-filled (username: demo, password: password)</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Show profile wizard if profile is not complete
   useEffect(() => {
-    if (expert) {
-      // Check if this is a first-time login and the user hasn't seen onboarding
-      const onboardingShown = localStorage.getItem('onboardingShown');
-      if (!onboardingShown && !hasSeenOnboarding) {
-        setShowWelcomeOnboarding(true);
-        setHasSeenOnboarding(true);
-      }
-      
-      // For existing users who haven't completed their profile, show profile wizard
-      if (!expert.profileComplete && !profileLoading && !profile && !showWelcomeOnboarding) {
-        setProfileWizardOpen(true);
-      }
+    if (expert && !expert.profileComplete && !profileLoading && !profile) {
+      setProfileWizardOpen(true);
     }
-  }, [expert, profile, profileLoading, hasSeenOnboarding, showWelcomeOnboarding]);
+  }, [expert, profile, profileLoading]);
   
   const handleProfileComplete = () => {
     // Update the expert object with profileComplete=true
-    if (expert) {
-      // Just store the updated expert info in local storage
-      const updatedExpert = {
-        ...expert,
-        profileComplete: true
-      };
-      localStorage.setItem('expert', JSON.stringify(updatedExpert));
-      window.location.reload(); // Reload to reflect changes
-    }
+    onLogin({
+      ...expert,
+      profileComplete: true
+    });
   };
-  
-  const handleWelcomeComplete = () => {
-    setShowWelcomeOnboarding(false);
-    localStorage.setItem('onboardingShown', 'true');
-  };
-  
-  // Safety check for null expert (though routing should prevent this)
-  if (!expert) return null;
   
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">
@@ -226,14 +320,6 @@ export default function Dashboard({ expert }: DashboardProps) {
         expertId={expert.id}
         onProfileComplete={handleProfileComplete}
       />
-      
-      {/* Welcome onboarding for new users */}
-      {showWelcomeOnboarding && (
-        <WelcomeOnboarding 
-          expert={expert}
-          onCompleted={handleWelcomeComplete}
-        />
-      )}
     </div>
   );
 }
