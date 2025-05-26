@@ -25,6 +25,7 @@ import {
 interface DashboardProps {
   expert: Expert | null;
   onLogin: (expert: Expert) => void;
+  authLoading?: boolean;
 }
 
 // Login form schema
@@ -33,7 +34,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export default function Dashboard({ expert, onLogin }: DashboardProps) {
+export default function Dashboard({ expert, onLogin, authLoading }: DashboardProps) {
   const [profileWizardOpen, setProfileWizardOpen] = useState(false);
   const { toast } = useToast();
   const currentDate = new Date();
@@ -128,59 +129,42 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
     }
   });
 
-  // If no expert exists, show login form
+  // Show loading while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0984E3] mx-auto mb-4"></div>
+              <h2 className="text-xl font-medium text-[#2D3436]">Authenticating with Replit...</h2>
+              <p className="text-gray-500 mt-2">Please wait while we set up your account</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If authentication failed and no expert exists, show welcome message
   if (!expert) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-[#2D3436]">Welcome Back</h2>
-              <p className="text-gray-500 mt-2">Sign in to your content planning account</p>
-            </div>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-[#0984E3]"
-                  disabled={loginMutation.isPending}
-                >
-                  {loginMutation.isPending ? "Logging in..." : "Login"}
-                </Button>
-              </form>
-            </Form>
-
-            <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Demo credentials are pre-filled (username: demo, password: password)</p>
+            <div className="text-center">
+              <div className="text-[#0984E3] mb-3">
+                <span className="text-3xl">🔑</span>
+              </div>
+              <h2 className="text-2xl font-bold text-[#2D3436]">Authentication Required</h2>
+              <p className="text-gray-500 mt-2">
+                Please ensure you're accessing this app from within your Replit environment for automatic authentication.
+              </p>
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  This app uses Replit's built-in authentication system. No manual login required when running on Replit.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

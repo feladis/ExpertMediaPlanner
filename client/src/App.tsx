@@ -25,6 +25,7 @@ function App() {
   const [expert, setExpert] = useState<Expert | null>(null);
   const [location] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Check for stored expert data and Replit auth on initial load
   useEffect(() => {
@@ -51,6 +52,7 @@ function App() {
       console.log('Replit auth successful:', expert);
       setExpert(expert);
       localStorage.setItem('expert', JSON.stringify(expert));
+      setAuthLoading(false);
     })
     .catch(error => {
       console.log('Replit auth failed:', error.message);
@@ -66,10 +68,15 @@ function App() {
           .then(updatedExpert => {
             setExpert(updatedExpert);
             localStorage.setItem('expert', JSON.stringify(updatedExpert));
+            setAuthLoading(false);
           })
-          .catch(err => console.log('Could not fetch updated expert data:', err));
+          .catch(err => {
+            console.log('Could not fetch updated expert data:', err);
+            setAuthLoading(false);
+          });
       } else {
         console.log('No stored expert data found');
+        setAuthLoading(false);
       }
     });
   }, []);
@@ -150,7 +157,7 @@ function App() {
 
           <main className="flex-1 relative overflow-y-auto focus:outline-none">
             <Switch>
-              <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} />} />
+              <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} authLoading={authLoading} />} />
               <Route path="/profile" component={() => <ProfilePage expert={expert} onExpertUpdate={handleExpertUpdate} />} />
               <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
               <Route path="/platform-content" component={() => <PlatformContent />} />
