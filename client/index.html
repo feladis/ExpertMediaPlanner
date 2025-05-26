@@ -11,7 +11,24 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Replit Auth -->
-    <script authed="location.reload()" src="https://auth.util.repl.co/script.js"></script>
+    <script>
+      window.addEventListener('load', function() {
+        // Only load Replit Auth script if we're in a Replit environment
+        if (window.location.hostname.includes('replit.dev') || window.location.hostname.includes('repl.co')) {
+          const script = document.createElement('script');
+          script.src = 'https://auth.util.repl.co/script.js';
+          script.setAttribute('authed', 'window.handleReplitAuth && window.handleReplitAuth()');
+          document.head.appendChild(script);
+        }
+      });
+      
+      // Global function to handle Replit auth success
+      window.handleReplitAuth = function() {
+        console.log('Replit authentication completed, checking auth status...');
+        // Trigger a custom event that the React app can listen to
+        window.dispatchEvent(new CustomEvent('replit-auth-success'));
+      };
+    </script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>

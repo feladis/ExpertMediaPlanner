@@ -413,10 +413,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const replitUserId = req.headers['x-replit-user-id'] as string;
       const replitUserName = req.headers['x-replit-user-name'] as string;
       
-      console.log('Replit Auth Headers:', { replitUserId, replitUserName, allHeaders: req.headers });
+      console.log('Replit Auth Headers:', { 
+        replitUserId, 
+        replitUserName, 
+        userAgent: req.headers['user-agent'],
+        host: req.headers.host 
+      });
       
-      if (!replitUserId || !replitUserName) {
-        return res.status(401).json({ message: 'Replit authentication required' });
+      if (!replitUserId || !replitUserName || replitUserId.trim() === '' || replitUserName.trim() === '') {
+        console.log('Missing or empty Replit authentication headers');
+        return res.status(401).json({ 
+          message: 'Replit authentication required. Please authenticate using the Replit Auth system.',
+          debug: { replitUserId, replitUserName }
+        });
       }
       
       // Check if expert already exists by Replit ID first, then by username

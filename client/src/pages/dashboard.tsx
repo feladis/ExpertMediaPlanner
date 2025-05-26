@@ -127,6 +127,23 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
 
   // If no expert exists, show login form
   if (!expert) {
+    const [isLoading, setIsLoading] = useState(false);
+
+  // Listen for Replit auth success event
+  useEffect(() => {
+    const handleReplitAuthSuccess = async () => {
+      try {
+        await onLogin();
+      } catch (error) {
+        console.error('Error handling Replit auth success:', error);
+      }
+    };
+
+    window.addEventListener('replit-auth-success', handleReplitAuthSuccess);
+    return () => window.removeEventListener('replit-auth-success', handleReplitAuthSuccess);
+  }, [onLogin]);
+
+    const handleLogin = async (event: any) => {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F6FA]">
         <Card className="w-full max-w-md">
@@ -139,7 +156,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
             </div>
 
             <h1 className="text-2xl font-bold text-center mb-6">Login to Your Account</h1>
-            
+
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800 mb-3 text-center">
                 Authenticate with your Replit account for seamless access
@@ -162,7 +179,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
                 />
               </div>
             </div>
-            
+
             <div className="text-center mb-4">
               <span className="text-sm text-gray-500">Or use demo credentials:</span>
             </div>

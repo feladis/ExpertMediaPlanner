@@ -25,13 +25,13 @@ function App() {
   const [expert, setExpert] = useState<Expert | null>(null);
   const [location] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
-  
+
   // Check for stored expert data and Replit auth on initial load
   useEffect(() => {
     const storedExpert = localStorage.getItem('expert');
-    
+
     console.log('Checking Replit authentication...');
-    
+
     // First try Replit authentication
     fetch('/api/auth/replit', {
       method: 'POST',
@@ -59,7 +59,7 @@ function App() {
         console.log('Using stored expert data');
         const parsedExpert = JSON.parse(storedExpert);
         setExpert(parsedExpert);
-        
+
         // Fetch latest expert data from server to get any updates (like profile image)
         fetch(`/api/experts/${parsedExpert.id}`, { credentials: 'include' })
           .then(res => res.json())
@@ -73,18 +73,49 @@ function App() {
       }
     });
   }, []);
-  
+
   // Save expert data to localStorage when it changes
   useEffect(() => {
     if (expert) {
       localStorage.setItem('expert', JSON.stringify(expert));
     }
   }, [expert]);
-  
-  const handleLogin = (loggedInExpert: Expert) => {
-    setExpert(loggedInExpert);
+
+  const handleLogin = (expert: Expert) => {
+    setExpert(expert);
+    localStorage.setItem('expert', JSON.stringify(expert));
   };
-  
+
+  const handleReplitAuth = async () => {
+    try {
+      console.log('Attempting Replit authentication...');
+      const response = await fetch('/api/auth/replit', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Replit auth response status:', response.status);
+
+      if (response.ok) {
+        const expert = await response.json();
+        console.log('Replit auth successful:', expert);
+        setExpert(expert);
+        localStorage.setItem('expert', JSON.stringify(expert));
+        return expert;
+      } else {
+        const error = await response.json();
+        console.log('Replit auth failed:', error.message);
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error('Replit authentication error:', error);
+      throw error;
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('expert');
     setExpert(null);
@@ -93,30 +124,30 @@ function App() {
   const handleExpertUpdate = (updatedExpert: Expert) => {
     setExpert(updatedExpert);
   };
-  
+
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
   };
-  
+
   // If no expert exists and not at login route, redirect to login
   // Special case for content editor which should be accessible even if coming from direct link
   if (!expert && location !== "/" && location !== "/content-editor") {
     window.location.href = "/";
     return null;
   }
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="h-screen flex bg-[#F5F6FA]">
         {expert && showSidebar && (
           <Sidebar expert={expert} onLogout={handleLogout} />
         )}
-        
+
         <div className="flex flex-col flex-1 overflow-hidden">
           {expert && (
             <Topbar onToggleSidebar={toggleSidebar} expert={expert} />
           )}
-          
+
           <main className="flex-1 relative overflow-y-auto focus:outline-none">
             <Switch>
               <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} />} />
