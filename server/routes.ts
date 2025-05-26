@@ -410,9 +410,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Replit Authentication
   app.post('/api/auth/replit', async (req: Request, res: Response) => {
     try {
-      // Use Replit environment variables as primary source, fallback to headers
-      const replitUserId = process.env.REPLIT_USERID || req.headers['x-replit-user-id'] as string;
-      const replitUserName = process.env.REPLIT_USER || req.headers['x-replit-user-name'] as string;
+      // Temporarily disable Replit auth to simulate non-Replit user
+      const replitUserId = req.headers['x-replit-user-id'] as string;
+      const replitUserName = req.headers['x-replit-user-name'] as string;
       
       console.log('All Request Headers:', Object.keys(req.headers));
       console.log('Replit Auth Headers:', { 
