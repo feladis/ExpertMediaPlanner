@@ -30,7 +30,17 @@ function App() {
   useEffect(() => {
     const storedExpert = localStorage.getItem('expert');
     if (storedExpert) {
-      setExpert(JSON.parse(storedExpert));
+      const parsedExpert = JSON.parse(storedExpert);
+      setExpert(parsedExpert);
+      
+      // Fetch latest expert data from server to get any updates (like profile image)
+      fetch(`/api/experts/${parsedExpert.id}`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(updatedExpert => {
+          setExpert(updatedExpert);
+          localStorage.setItem('expert', JSON.stringify(updatedExpert));
+        })
+        .catch(err => console.log('Could not fetch updated expert data:', err));
     }
   }, []);
   
