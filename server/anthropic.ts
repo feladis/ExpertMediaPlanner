@@ -98,10 +98,17 @@ Your response MUST be formatted as a valid JSON object with this structure:
       let cleanContent = content;
       
       // Remove markdown code block markers if present
-      const jsonRegex = /```(?:json)?([\s\S]*?)```/;
-      const match = content.match(jsonRegex);
-      if (match && match[1]) {
-        cleanContent = match[1].trim();
+      if (content.startsWith('```')) {
+        // Find the first newline after ```json or ```
+        const startIndex = content.indexOf('\n') + 1;
+        // Find the closing ```
+        const endIndex = content.lastIndexOf('```');
+        if (endIndex > startIndex) {
+          cleanContent = content.substring(startIndex, endIndex).trim();
+        } else {
+          // If no closing ```, remove the opening ```json or ``` line
+          cleanContent = content.substring(startIndex).trim();
+        }
       }
       
       // Try to fix truncated JSON by adding missing closing brackets
