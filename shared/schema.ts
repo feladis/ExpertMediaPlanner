@@ -11,6 +11,7 @@ export const experts = pgTable("experts", {
   role: text("role"),
   profileComplete: boolean("profile_complete").default(false),
   profileImage: text("profile_image"),
+  replitId: text("replit_id").unique(),
 });
 
 // Expert profile details
