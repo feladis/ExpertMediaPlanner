@@ -104,12 +104,28 @@ Your response MUST be formatted as a valid JSON object with this structure:
         cleanContent = match[1].trim();
       }
       
+      // Try to fix truncated JSON by adding missing closing brackets
+      let fixedContent = cleanContent;
+      
+      // Count open and close brackets to detect truncation
+      const openBrackets = (fixedContent.match(/\{/g) || []).length;
+      const closeBrackets = (fixedContent.match(/\}/g) || []).length;
+      
+      if (openBrackets > closeBrackets) {
+        // Add missing closing brackets
+        const missing = openBrackets - closeBrackets;
+        fixedContent = fixedContent + '}'.repeat(missing);
+      }
+      
+      // Remove any trailing commas that might cause issues
+      fixedContent = fixedContent.replace(/,(\s*[}\]])/g, '$1');
+      
       // Attempt to parse the JSON
-      const result = JSON.parse(cleanContent);
+      const result = JSON.parse(fixedContent);
       return result.topics || [];
     } catch (parseError) {
       console.error('Error parsing JSON response:', parseError);
-      console.error('Raw content:', content);
+      console.error('Raw content (first 500 chars):', content.substring(0, 500));
       throw new Error('Failed to parse response from Anthropic');
     }
   } catch (error: any) {
