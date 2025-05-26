@@ -427,7 +427,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: expert.username,
         name: expert.name,
         role: expert.role,
-        profileComplete: expert.profileComplete
+        profileComplete: expert.profileComplete,
+        profileImage: expert.profileImage
       });
     } catch (err) {
       handleError(err, res);
