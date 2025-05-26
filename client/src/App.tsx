@@ -49,6 +49,10 @@ function App() {
     localStorage.removeItem('expert');
     setExpert(null);
   };
+
+  const handleExpertUpdate = (updatedExpert: Expert) => {
+    setExpert(updatedExpert);
+  };
   
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
@@ -76,7 +80,7 @@ function App() {
           <main className="flex-1 relative overflow-y-auto focus:outline-none">
             <Switch>
               <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} />} />
-              <Route path="/profile" component={() => <ProfilePage expert={expert} />} />
+              <Route path="/profile" component={() => <ProfilePage expert={expert} onExpertUpdate={handleExpertUpdate} />} />
               <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
               <Route path="/platform-content" component={() => <PlatformContent />} />
               <Route path="/content-editor" component={() => <ContentEditorPage />} />

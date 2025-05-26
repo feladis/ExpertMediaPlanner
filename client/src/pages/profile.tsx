@@ -19,9 +19,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ProfilePageProps {
   expert: Expert | null;
+  onExpertUpdate?: (expert: Expert) => void;
 }
 
-export default function ProfilePage({ expert }: ProfilePageProps) {
+export default function ProfilePage({ expert, onExpertUpdate }: ProfilePageProps) {
   const [profileWizardOpen, setProfileWizardOpen] = useState(false);
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [currentExpert, setCurrentExpert] = useState<Expert | null>(expert);
@@ -48,6 +49,10 @@ export default function ProfilePage({ expert }: ProfilePageProps) {
   // Handle the personal information update
   const handleProfileUpdate = (updatedExpert: Expert) => {
     setCurrentExpert(updatedExpert);
+    // Update the parent component's expert state too
+    if (onExpertUpdate) {
+      onExpertUpdate(updatedExpert);
+    }
     toast({
       title: "Profile Updated",
       description: "Your personal information has been successfully updated.",
