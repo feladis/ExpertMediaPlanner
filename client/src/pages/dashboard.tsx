@@ -139,6 +139,33 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
             </div>
 
             <h1 className="text-2xl font-bold text-center mb-6">Login to Your Account</h1>
+            
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800 mb-3 text-center">
+                Authenticate with your Replit account for seamless access
+              </p>
+              <div className="flex justify-center">
+                <script 
+                  dangerouslySetInnerHTML={{
+                    __html: `
+                      document.addEventListener('DOMContentLoaded', function() {
+                        if (window.location !== window.parent.location) {
+                          // We're in an iframe (Replit environment)
+                          const script = document.createElement('script');
+                          script.src = 'https://auth.util.repl.co/script.js';
+                          script.setAttribute('authed', 'location.reload()');
+                          document.body.appendChild(script);
+                        }
+                      });
+                    `
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="text-center mb-4">
+              <span className="text-sm text-gray-500">Or use demo credentials:</span>
+            </div>
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

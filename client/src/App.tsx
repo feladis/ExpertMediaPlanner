@@ -30,6 +30,8 @@ function App() {
   useEffect(() => {
     const storedExpert = localStorage.getItem('expert');
     
+    console.log('Checking Replit authentication...');
+    
     // First try Replit authentication
     fetch('/api/auth/replit', {
       method: 'POST',
@@ -39,18 +41,22 @@ function App() {
       }
     })
     .then(res => {
+      console.log('Replit auth response status:', res.status);
       if (res.ok) {
         return res.json();
       }
-      throw new Error('Replit auth failed');
+      throw new Error(`Replit auth failed with status ${res.status}`);
     })
     .then(expert => {
+      console.log('Replit auth successful:', expert);
       setExpert(expert);
       localStorage.setItem('expert', JSON.stringify(expert));
     })
-    .catch(() => {
+    .catch(error => {
+      console.log('Replit auth failed:', error.message);
       // Fallback to stored expert data if Replit auth fails
       if (storedExpert) {
+        console.log('Using stored expert data');
         const parsedExpert = JSON.parse(storedExpert);
         setExpert(parsedExpert);
         
@@ -62,6 +68,8 @@ function App() {
             localStorage.setItem('expert', JSON.stringify(updatedExpert));
           })
           .catch(err => console.log('Could not fetch updated expert data:', err));
+      } else {
+        console.log('No stored expert data found');
       }
     });
   }, []);

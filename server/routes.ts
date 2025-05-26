@@ -413,12 +413,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const replitUserId = req.headers['x-replit-user-id'] as string;
       const replitUserName = req.headers['x-replit-user-name'] as string;
       
+      console.log('Replit Auth Headers:', { replitUserId, replitUserName, allHeaders: req.headers });
+      
       if (!replitUserId || !replitUserName) {
         return res.status(401).json({ message: 'Replit authentication required' });
       }
       
-      // Check if expert already exists
-      let expert = await storage.getExpertByUsername(replitUserName);
+      // Check if expert already exists by Replit ID first, then by username
+      let expert = await storage.getExpertByReplitId(replitUserId);
+      
+      if (!expert) {
+        expert = await storage.getExpertByUsername(replitUserName);
+      }
       
       if (!expert) {
         // Create new expert from Replit user data
@@ -427,8 +433,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: replitUserName,
           role: 'Content Creator',
           password: '', // No password needed for Replit auth
+          replitId: replitUserId,
           profileComplete: false
         });
+      } else if (!expert.replitId) {
+        // Update existing expert with Replit ID
+        expert = await storage.updateExpert(expert.id, { replitId: replitUserId });
       }
       
       res.json({
@@ -440,6 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImage: expert.profileImage
       });
     } catch (err) {
+      console.error('Replit auth error:', err);
       handleError(err, res);
     }
   });

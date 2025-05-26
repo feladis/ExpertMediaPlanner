@@ -58,6 +58,11 @@ export class DatabaseStorage implements IStorage {
     return expert;
   }
 
+  async getExpertByReplitId(replitId: string): Promise<Expert | undefined> {
+    const [expert] = await db.select().from(experts).where(eq(experts.replitId, replitId));
+    return expert;
+  }
+
   async createExpert(expert: InsertExpert): Promise<Expert> {
     // The insert method in drizzle expects a single object, not an array
     const [newExpert] = await db.insert(experts).values(expert).returning();
