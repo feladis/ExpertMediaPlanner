@@ -367,3 +367,5 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
     </div>
   );
 }
+
+export default Dashboard;
