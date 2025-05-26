@@ -101,6 +101,7 @@ export default function Dashboard({ expert, onLogin, authLoading }: DashboardPro
       if (!profile) throw new Error('Profile required');
       
       const response = await apiRequest('POST', '/api/generate-topics', {
+        expertId: expert?.id,
         primaryExpertise: profile.primaryExpertise,
         secondaryExpertise: profile.secondaryExpertise || [],
         expertiseKeywords: profile.expertiseKeywords || [],
