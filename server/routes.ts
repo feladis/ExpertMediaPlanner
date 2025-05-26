@@ -407,7 +407,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple authentication for demo purposes
+  // Replit Authentication
+  app.post('/api/auth/replit', async (req: Request, res: Response) => {
+    try {
+      const replitUserId = req.headers['x-replit-user-id'] as string;
+      const replitUserName = req.headers['x-replit-user-name'] as string;
+      
+      if (!replitUserId || !replitUserName) {
+        return res.status(401).json({ message: 'Replit authentication required' });
+      }
+      
+      // Check if expert already exists
+      let expert = await storage.getExpertByUsername(replitUserName);
+      
+      if (!expert) {
+        // Create new expert from Replit user data
+        expert = await storage.createExpert({
+          username: replitUserName,
+          name: replitUserName,
+          role: 'Content Creator',
+          password: '', // No password needed for Replit auth
+          profileComplete: false
+        });
+      }
+      
+      res.json({
+        id: expert.id,
+        username: expert.username,
+        name: expert.name,
+        role: expert.role,
+        profileComplete: expert.profileComplete,
+        profileImage: expert.profileImage
+      });
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // Simple authentication for demo purposes (keep for fallback)
   app.post('/api/login', async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;

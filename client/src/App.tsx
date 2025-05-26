@@ -26,22 +26,44 @@ function App() {
   const [location] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
   
-  // Check for stored expert data on initial load
+  // Check for stored expert data and Replit auth on initial load
   useEffect(() => {
     const storedExpert = localStorage.getItem('expert');
-    if (storedExpert) {
-      const parsedExpert = JSON.parse(storedExpert);
-      setExpert(parsedExpert);
-      
-      // Fetch latest expert data from server to get any updates (like profile image)
-      fetch(`/api/experts/${parsedExpert.id}`, { credentials: 'include' })
-        .then(res => res.json())
-        .then(updatedExpert => {
-          setExpert(updatedExpert);
-          localStorage.setItem('expert', JSON.stringify(updatedExpert));
-        })
-        .catch(err => console.log('Could not fetch updated expert data:', err));
-    }
+    
+    // First try Replit authentication
+    fetch('/api/auth/replit', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => {
+      if (res.ok) {
+        return res.json();
+      }
+      throw new Error('Replit auth failed');
+    })
+    .then(expert => {
+      setExpert(expert);
+      localStorage.setItem('expert', JSON.stringify(expert));
+    })
+    .catch(() => {
+      // Fallback to stored expert data if Replit auth fails
+      if (storedExpert) {
+        const parsedExpert = JSON.parse(storedExpert);
+        setExpert(parsedExpert);
+        
+        // Fetch latest expert data from server to get any updates (like profile image)
+        fetch(`/api/experts/${parsedExpert.id}`, { credentials: 'include' })
+          .then(res => res.json())
+          .then(updatedExpert => {
+            setExpert(updatedExpert);
+            localStorage.setItem('expert', JSON.stringify(updatedExpert));
+          })
+          .catch(err => console.log('Could not fetch updated expert data:', err));
+      }
+    });
   }, []);
   
   // Save expert data to localStorage when it changes

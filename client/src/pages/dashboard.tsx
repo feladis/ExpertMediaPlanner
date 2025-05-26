@@ -40,13 +40,13 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
   const currentDate = new Date();
   const weekStart = new Date(currentDate);
   weekStart.setDate(currentDate.getDate() - currentDate.getDay());
-  
+
   const formattedDate = weekStart.toLocaleDateString('en-US', { 
     month: 'long', 
     day: 'numeric', 
     year: 'numeric' 
   });
-  
+
   // Login form
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -55,7 +55,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       password: "password"
     },
   });
-  
+
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (values: z.infer<typeof loginSchema>) => {
@@ -77,18 +77,18 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       });
     }
   });
-  
+
   // Handle login form submission
   function onSubmit(values: z.infer<typeof loginSchema>) {
     loginMutation.mutate(values);
   }
-  
+
   // Check if expert profile exists
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: [`/api/expert-profiles/${expert?.id}`],
     enabled: !!expert?.id
   });
-  
+
   // Query topics
   const { data: topics = [], isLoading: topicsLoading } = useQuery({
     queryKey: [`/api/topics/${expert?.id}`],
@@ -97,7 +97,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       console.log("Topics loaded:", data);
     }
   });
-  
+
   // Generate topics mutation
   const generateTopicsMutation = useMutation({
     mutationFn: async () => {
@@ -124,7 +124,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       });
     }
   });
-  
+
   // If no expert exists, show login form
   if (!expert) {
     return (
@@ -137,9 +137,9 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
                 ExpertPlanner
               </div>
             </div>
-            
+
             <h1 className="text-2xl font-bold text-center mb-6">Login to Your Account</h1>
-            
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -155,7 +155,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="password"
@@ -169,7 +169,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
                     </FormItem>
                   )}
                 />
-                
+
                 <Button 
                   type="submit" 
                   className="w-full bg-[#0984E3]"
@@ -179,7 +179,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
                 </Button>
               </form>
             </Form>
-            
+
             <div className="mt-6 text-center text-sm text-gray-500">
               <p>Demo credentials are pre-filled (username: demo, password: password)</p>
             </div>
@@ -188,14 +188,14 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       </div>
     );
   }
-  
+
   // Show profile wizard if profile is not complete
   useEffect(() => {
     if (expert && !expert.profileComplete && !profileLoading && !profile) {
       setProfileWizardOpen(true);
     }
   }, [expert, profile, profileLoading]);
-  
+
   const handleProfileComplete = () => {
     // Update the expert object with profileComplete=true
     onLogin({
@@ -203,7 +203,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       profileComplete: true
     });
   };
-  
+
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-6">
@@ -263,7 +263,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
             </button>
           </div>
         </div>
-        
+
         {topicsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, idx) => (
@@ -312,7 +312,7 @@ export default function Dashboard({ expert, onLogin }: DashboardProps) {
       </div>
 
       {/* Platform-Specific Content Ideas section removed - now has its own page */}
-      
+
       {/* Profile wizard dialog */}
       <ProfileWizard 
         open={profileWizardOpen} 
