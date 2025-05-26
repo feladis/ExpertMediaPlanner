@@ -410,21 +410,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Replit Authentication
   app.post('/api/auth/replit', async (req: Request, res: Response) => {
     try {
-      const replitUserId = req.headers['x-replit-user-id'] as string;
-      const replitUserName = req.headers['x-replit-user-name'] as string;
+      // Check all possible Replit header variations
+      const replitUserId = req.headers['x-replit-user-id'] as string || 
+                          req.headers['replit-user-id'] as string ||
+                          process.env.REPLIT_USER_ID;
+      const replitUserName = req.headers['x-replit-user-name'] as string || 
+                            req.headers['replit-user-name'] as string ||
+                            process.env.REPLIT_USER_NAME;
       
+      console.log('All Request Headers:', Object.keys(req.headers));
       console.log('Replit Auth Headers:', { 
         replitUserId, 
         replitUserName, 
         userAgent: req.headers['user-agent'],
-        host: req.headers.host 
+        host: req.headers.host,
+        allHeaders: req.headers
       });
       
       if (!replitUserId || !replitUserName || replitUserId.trim() === '' || replitUserName.trim() === '') {
         console.log('Missing or empty Replit authentication headers');
         return res.status(401).json({ 
-          message: 'Replit authentication required. Please authenticate using the Replit Auth system.',
-          debug: { replitUserId, replitUserName }
+          message: 'Replit authentication headers not found. This may require additional Replit Auth configuration.',
+          debug: { 
+            replitUserId, 
+            replitUserName,
+            availableHeaders: Object.keys(req.headers),
+            envVars: {
+              hasReplitUserId: !!process.env.REPLIT_USER_ID,
+              hasReplitUserName: !!process.env.REPLIT_USER_NAME
+            }
+          }
         });
       }
       
