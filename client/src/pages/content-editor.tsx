@@ -362,6 +362,15 @@ export default function ContentEditorPage() {
                     // Make sure URL has protocol
                     const cleanUrl = source.startsWith('www.') ? `https://${source}` : source;
                     
+                    // Extract domain for cleaner display
+                    let displayText = source;
+                    try {
+                      const urlObj = new URL(cleanUrl);
+                      displayText = urlObj.hostname.replace('www.', '') + (urlObj.pathname !== '/' ? urlObj.pathname : '');
+                    } catch (e) {
+                      displayText = source;
+                    }
+                    
                     return (
                       <div key={idx} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-sm transition-colors group">
                         <i className="fas fa-external-link-alt text-[#0984E3] text-xs flex-shrink-0"></i>
@@ -370,8 +379,9 @@ export default function ContentEditorPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-[#0984E3] hover:text-blue-700 hover:underline flex-1 break-all"
+                          title={cleanUrl}
                         >
-                          {source}
+                          {displayText}
                         </a>
                         <Button
                           size="sm"
@@ -391,26 +401,40 @@ export default function ContentEditorPage() {
                       </div>
                     );
                   } else {
-                    // Regular text source
+                    // For text sources, try to suggest a search URL
+                    const searchQuery = encodeURIComponent(source);
+                    const searchUrl = `https://www.google.com/search?q=${searchQuery}`;
+                    
                     return (
                       <div key={idx} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-sm transition-colors group">
                         <i className="fas fa-book text-gray-400 text-xs flex-shrink-0"></i>
                         <span className="text-sm text-gray-600 flex-1">{source}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
-                          onClick={() => {
-                            navigator.clipboard.writeText(source);
-                            toast({
-                              title: "Text copied!",
-                              description: "The source text has been copied to your clipboard.",
-                              duration: 2000
-                            });
-                          }}
-                        >
-                          <i className="fas fa-copy text-xs"></i>
-                        </Button>
+                        <div className="flex space-x-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
+                            onClick={() => window.open(searchUrl, '_blank')}
+                            title="Search for this source"
+                          >
+                            <i className="fas fa-search text-xs"></i>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
+                            onClick={() => {
+                              navigator.clipboard.writeText(source);
+                              toast({
+                                title: "Text copied!",
+                                description: "The source text has been copied to your clipboard.",
+                                duration: 2000
+                              });
+                            }}
+                          >
+                            <i className="fas fa-copy text-xs"></i>
+                          </Button>
+                        </div>
                       </div>
                     );
                   }

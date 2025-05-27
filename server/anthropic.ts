@@ -189,7 +189,7 @@ For each idea, include:
 - A brief description
 - Recommended format (post, article, thread, etc.)
 - 3-5 key points to include
-- 2-3 suggested reference sources (prestigious publications, research papers, etc.)
+- 2-3 actual URLs as reference sources (real websites like harvard.edu, mit.edu, forbes.com, hbr.org, etc.)
 
 Your response MUST be formatted as a valid JSON object with this structure:
 {
@@ -199,7 +199,7 @@ Your response MUST be formatted as a valid JSON object with this structure:
       "description": "Brief description of the idea",
       "format": "Format type (post, article, etc.)",
       "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
-      "sources": ["Source 1", "Source 2"]
+      "sources": ["https://example.com/article1", "https://example.com/article2"]
     },
     // more ideas...
   ]
@@ -210,7 +210,9 @@ Your response MUST be formatted as a valid JSON object with this structure:
 - Description: ${params.description}
 - Viewpoints to consider: ${params.viewpoints.join(', ')}
 - My expertise keywords: ${params.expertiseKeywords.join(', ')}
-- My voice tone: ${params.voiceTone.join(', ')}`;
+- My voice tone: ${params.voiceTone.join(', ')}
+
+IMPORTANT: For sources, provide actual clickable URLs (like https://hbr.org/..., https://www.mckinsey.com/..., https://sloanreview.mit.edu/...) not just titles or descriptions.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-7-sonnet-20250219',
