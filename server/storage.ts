@@ -365,15 +365,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance> {
-    const formattedRelevance = {
-      expertId: relevance.expertId,
-      scrapedContentId: relevance.scrapedContentId,
-      relevanceScore: relevance.relevanceScore,
-      matchedKeywords: relevance.matchedKeywords || []
-    };
-    
     const [newRelevance] = await db.insert(expertContentRelevance)
-      .values(formattedRelevance)
+      .values({
+        expertId: relevance.expertId,
+        scrapedContentId: relevance.scrapedContentId,
+        relevanceScore: relevance.relevanceScore,
+        matchedKeywords: relevance.matchedKeywords || []
+      })
       .returning();
     return newRelevance;
   }

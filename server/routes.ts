@@ -409,17 +409,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(err, res);
     }
   });
-          sources: idea.sources
-        });
-        
-        savedIdeas.push(newIdea);
-      }
-      
-      res.status(201).json(savedIdeas);
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
 
   // Replit Authentication
   app.post('/api/auth/replit', async (req: Request, res: Response) => {
@@ -623,7 +612,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk scrape from targets
+  // Profile Scraping Sync API
+  app.post('/api/sync-scraping-targets', async (req: Request, res: Response) => {
+    try {
+      const { expertId } = req.body;
+      
+      const { profileScrapingSync } = await import('./profile-scraping-sync');
+      
+      if (expertId) {
+        await profileScrapingSync.syncExpertSources(parseInt(expertId));
+        res.json({ message: `Synced scraping targets for expert ${expertId}` });
+      } else {
+        await profileScrapingSync.syncAllExpertSources();
+        res.json({ message: 'Synced scraping targets for all experts' });
+      }
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
   app.post('/api/bulk-scrape', async (req: Request, res: Response) => {
     try {
       const { expertId } = req.body;

@@ -1,7 +1,20 @@
 import { storage } from './storage';
 import { WebScraper, calculateRelevanceScore } from './scraping';
 import { generateContentIdeas } from './anthropic';
-import { profileScrapingSync } from './profile-scraping-sync';
+
+export interface ContentPipelineResult {
+  ideas: Array<{
+    id: number;
+    title: string;
+    description: string | null;
+    format: string | null;
+    keyPoints: string[];
+    sources: string[];
+    platform: string;
+  }>;
+  sourcesUsed: string[];
+  timestamp: Date;
+}
 
 export class ContentPipeline {
   private scraper: WebScraper;
@@ -17,62 +30,62 @@ export class ContentPipeline {
     topicId: number;
     platform: string;
     expertId: number;
-  }) {
-    console.log('Starting scraping-first content generation...');
-
-    // Step 1: Ensure expert's URLs are synced to scraping targets
-    await profileScrapingSync.syncExpertSources(params.expertId);
-
-    // Step 2: Scrape fresh content from expert's trusted sources
+  }): Promise<ContentPipelineResult> {
+    // Step 1: Scrape fresh content
     const scrapedData = await this.scrapeFreshContent(params.expertId);
-
-    // Step 3: Validate we have sufficient content
+    
     if (scrapedData.length === 0) {
-      throw new Error('No scraped content available. Cannot generate content ideas without trusted sources.');
+      throw new Error('No scraped content available for this expert. Please ensure your profile has valid information sources.');
     }
 
-    // Step 4: Get topic and viewpoints
+    // Step 2: Get topic and viewpoints
     const topic = await storage.getTopic(params.topicId);
-    const viewpoints = await storage.getViewpoints(params.topicId);
-    const expertProfile = await storage.getExpertProfile(params.expertId);
-
-    if (!topic || !expertProfile) {
-      throw new Error('Topic or expert profile not found');
+    if (!topic) {
+      throw new Error('Topic not found');
     }
 
-    // Step 5: Generate content ideas with real scraped data
+    const viewpoints = await storage.getViewpoints(params.topicId);
+    const profile = await storage.getExpertProfile(params.expertId);
+    if (!profile) {
+      throw new Error('Expert profile not found');
+    }
+
+    // Step 3: Generate content ideas using scraped data
     const contentIdeas = await generateContentIdeas({
       topic: topic.title,
       description: topic.description || '',
       platform: params.platform,
       viewpoints: viewpoints.map(v => v.title),
-      expertiseKeywords: expertProfile.expertiseKeywords || [],
-      voiceTone: expertProfile.voiceTone || [],
+      expertiseKeywords: profile.expertiseKeywords || [],
+      voiceTone: profile.voiceTone || [],
       expertId: params.expertId
     });
 
-    // Step 6: Save content ideas with source validation
+    // Step 4: Validate and save content ideas with source references
     const savedIdeas = [];
+    const sourcesUsed: string[] = [];
+
     for (const idea of contentIdeas) {
       // Validate that sources reference actual scraped content
       const validatedSources = await this.validateSources(idea.sources, scrapedData);
-      
-      const savedIdea = await storage.createContentIdea({
-        title: idea.title,
+      sourcesUsed.push(...validatedSources);
+
+      const newIdea = await storage.createContentIdea({
         topicId: params.topicId,
         platform: params.platform,
+        title: idea.title,
         description: idea.description,
         format: idea.format,
         keyPoints: idea.keyPoints,
         sources: validatedSources
       });
 
-      savedIdeas.push(savedIdea);
+      savedIdeas.push(newIdea);
     }
 
     return {
       ideas: savedIdeas,
-      sourcesUsed: scrapedData.length,
+      sourcesUsed: [...new Set(sourcesUsed)], // Remove duplicates
       timestamp: new Date()
     };
   }
@@ -81,94 +94,66 @@ export class ContentPipeline {
    * Scrape fresh content from expert's trusted sources
    */
   private async scrapeFreshContent(expertId: number) {
-    const expertProfile = await storage.getExpertProfile(expertId);
-    if (!expertProfile?.informationSources) {
-      return [];
-    }
+    const targets = await storage.getActiveScrapingTargets();
+    const results = [];
 
-    const scrapedData = [];
-    
-    for (const source of expertProfile.informationSources) {
-      if (!source.url) continue;
-
+    for (const target of targets) {
       try {
-        // Check if we already have recent content from this URL
-        const existingContent = await storage.getScrapedContentByUrl(source.url);
-        const isRecent = existingContent && existingContent.scrapedDate &&
-          (Date.now() - existingContent.scrapedDate.getTime()) < 24 * 60 * 60 * 1000; // 24 hours
-
-        if (isRecent) {
-          scrapedData.push(existingContent);
-          continue;
-        }
-
-        // Scrape fresh content
-        console.log(`Scraping fresh content from: ${source.url}`);
-        const result = await this.scraper.scrapeUrl(source.url);
-
+        const result = await this.scraper.scrapeUrl(target.baseUrl);
+        
         if (result.success && result.content) {
-          // Save or update scraped content
-          let savedContent;
-          if (existingContent) {
-            savedContent = await storage.updateScrapedContent(existingContent.id, {
-              title: result.content.title,
-              content: result.content.content,
-              summary: result.content.summary,
-              scrapedDate: new Date()
-            });
+          // Check if content already exists
+          const existing = await storage.getScrapedContentByUrl(target.baseUrl);
+          
+          if (!existing) {
+            // Save new content
+            const savedContent = await storage.createScrapedContent(result.content);
+            
+            // Calculate relevance for this expert
+            const expertProfile = await storage.getExpertProfile(expertId);
+            if (expertProfile) {
+              const relevanceScore = calculateRelevanceScore(savedContent, expertProfile);
+              await storage.createExpertContentRelevance({
+                expertId,
+                scrapedContentId: savedContent.id!,
+                relevanceScore,
+                matchedKeywords: []
+              });
+            }
+            
+            results.push(savedContent);
           } else {
-            savedContent = await storage.createScrapedContent(result.content);
-          }
-
-          if (savedContent) {
-            // Calculate and save relevance
-            const relevanceScore = calculateRelevanceScore(savedContent, expertProfile);
-            await storage.createExpertContentRelevance({
-              expertId,
-              scrapedContentId: savedContent.id,
-              relevanceScore,
-              matchedKeywords: []
-            });
-
-            scrapedData.push(savedContent);
+            results.push(existing);
           }
         }
       } catch (error) {
-        console.error(`Error scraping ${source.url}:`, error);
+        console.error(`Failed to scrape ${target.baseUrl}:`, error);
       }
     }
 
-    console.log(`Scraped ${scrapedData.length} articles from trusted sources`);
-    return scrapedData;
+    return results;
   }
 
   /**
    * Validate that sources reference actual scraped content
    */
   private async validateSources(sources: string[], scrapedData: any[]) {
-    const validatedSources = [];
-    const scrapedUrls = scrapedData.map(data => data.url);
-
+    const validatedSources: string[] = [];
+    
     for (const source of sources) {
-      if (source === 'No sources available - manual research required') {
+      // Extract domain from source URL
+      const sourceDomain = this.extractDomain(source);
+      
+      // Check if we have scraped content from this domain
+      const hasContent = scrapedData.some(data => 
+        this.extractDomain(data.url) === sourceDomain
+      );
+      
+      if (hasContent) {
         validatedSources.push(source);
-      } else if (scrapedUrls.includes(source)) {
-        validatedSources.push(source);
-      } else {
-        // Try to find a similar domain
-        const domain = this.extractDomain(source);
-        const matchingContent = scrapedData.find(data => 
-          data.url.includes(domain) || data.domain === domain
-        );
-        
-        if (matchingContent) {
-          validatedSources.push(matchingContent.url);
-        } else {
-          validatedSources.push('Source validation failed - manual verification required');
-        }
       }
     }
-
+    
     return validatedSources;
   }
 
@@ -176,7 +161,7 @@ export class ContentPipeline {
     try {
       return new URL(url).hostname;
     } catch {
-      return '';
+      return url;
     }
   }
 }
