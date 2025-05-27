@@ -23,10 +23,10 @@ export default function PlatformContentPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("linkedin");
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   
-  // Get the expert ID from localStorage (set when logging in) or use default ID 1 for demo
+  // Get the expert ID from localStorage (set when logging in) or use default ID 2 for current user
   const expertId = localStorage.getItem('expertId') ? 
     parseInt(localStorage.getItem('expertId') as string, 10) : 
-    1; // Default to expertId 1 for demo
+    2; // Default to expertId 2 for current user Felipe
   
   // Fetch expert profile to get platforms
   const { data: expertProfile } = useQuery<ExpertProfile>({
@@ -47,13 +47,13 @@ export default function PlatformContentPage() {
     }
   }, [expertProfile]);
   
-  // Set initial selected topic to the first topic (so content actually loads)
+  // Set initial selected topic to "All Topics" by default
   useEffect(() => {
     if (Array.isArray(topics) && topics.length > 0 && selectedTopicId === null) {
-      // Set to first topic so we actually fetch content ideas
-      setSelectedTopicId(topics[0].id);
+      // Keep as null for "All Topics" initially
+      setSelectedTopicId(null);
     }
-  }, [topics, selectedTopicId]);
+  }, [topics]);
   
   // Fetch content ideas for selected topic (or all topics) and platform
   const { data: contentIdeas = [], isLoading } = useQuery<ContentIdea[]>({
@@ -67,18 +67,21 @@ export default function PlatformContentPage() {
         return response.json();
       } else {
         // Fetch ideas from all topics for this expert
-        // First get all topics
         const allIdeas: ContentIdea[] = [];
         
-        for (const topic of topics) {
-          try {
-            const response = await fetch(`/api/content-ideas/${topic.id}`);
-            if (response.ok) {
-              const topicIdeas = await response.json();
-              allIdeas.push(...topicIdeas);
+        if (Array.isArray(topics) && topics.length > 0) {
+          for (const topic of topics) {
+            try {
+              const response = await fetch(`/api/content-ideas/${topic.id}`);
+              if (response.ok) {
+                const topicIdeas = await response.json();
+                if (Array.isArray(topicIdeas)) {
+                  allIdeas.push(...topicIdeas);
+                }
+              }
+            } catch (error) {
+              console.error(`Error fetching ideas for topic ${topic.id}:`, error);
             }
-          } catch (error) {
-            console.error(`Error fetching ideas for topic ${topic.id}:`, error);
           }
         }
         
