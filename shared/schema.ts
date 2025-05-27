@@ -102,7 +102,7 @@ export const expertContentRelevance = pgTable("expert_content_relevance", {
   id: serial("id").primaryKey(),
   expertId: integer("expert_id").references(() => experts.id, { onDelete: "cascade" }),
   scrapedContentId: integer("scraped_content_id").references(() => scrapedContent.id, { onDelete: "cascade" }),
-  relevanceScore: real("relevance_score").notNull(),
+  relevanceScore: doublePrecision("relevance_score").notNull(),
   matchedKeywords: jsonb("matched_keywords").$type<string[]>(),
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -180,16 +180,9 @@ export type ScheduledContent = typeof scheduledContent.$inferSelect;
 export type InsertScheduledContent = z.infer<typeof insertScheduledContentSchema>;
 
 // Scraped content schemas
-export const insertScrapedContentSchema = createInsertSchema(scrapedContent).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertScrapedContentSchema = createInsertSchema(scrapedContent);
 
-export const insertExpertContentRelevanceSchema = createInsertSchema(expertContentRelevance).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertExpertContentRelevanceSchema = createInsertSchema(expertContentRelevance);
 
 export const insertScrapingTargetSchema = createInsertSchema(scrapingTargets).omit({
   id: true,

@@ -5,7 +5,11 @@ import {
   Viewpoint, InsertViewpoint,
   ContentIdea, InsertContentIdea,
   ScheduledContent, InsertScheduledContent,
-  experts, expertProfiles, topics, viewpoints, contentIdeas, scheduledContent
+  ScrapedContent, InsertScrapedContent,
+  ExpertContentRelevance, InsertExpertContentRelevance,
+  ScrapingTarget, InsertScrapingTarget,
+  experts, expertProfiles, topics, viewpoints, contentIdeas, scheduledContent,
+  scrapedContent, expertContentRelevance, scrapingTargets
 } from "@shared/schema";
 
 export interface IStorage {
@@ -41,6 +45,26 @@ export interface IStorage {
   getScheduledContent(expertId: number): Promise<ScheduledContent[]>;
   createScheduledContent(content: InsertScheduledContent): Promise<ScheduledContent>;
   updateScheduledContent(id: number, data: Partial<ScheduledContent>): Promise<ScheduledContent | undefined>;
+  
+  // Scraped Content methods
+  getScrapedContent(limit?: number, offset?: number): Promise<ScrapedContent[]>;
+  getScrapedContentById(id: number): Promise<ScrapedContent | undefined>;
+  getScrapedContentByUrl(url: string): Promise<ScrapedContent | undefined>;
+  createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent>;
+  updateScrapedContent(id: number, data: Partial<ScrapedContent>): Promise<ScrapedContent | undefined>;
+  deleteScrapedContent(id: number): Promise<boolean>;
+  getRecentScrapedContent(days?: number): Promise<ScrapedContent[]>;
+  
+  // Expert Content Relevance methods
+  getExpertContentRelevance(expertId: number, limit?: number): Promise<ExpertContentRelevance[]>;
+  createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance>;
+  getRelevantContentForExpert(expertId: number, limit?: number): Promise<ScrapedContent[]>;
+  
+  // Scraping Target methods
+  getScrapingTargets(): Promise<ScrapingTarget[]>;
+  getActiveScrapingTargets(): Promise<ScrapingTarget[]>;
+  createScrapingTarget(target: InsertScrapingTarget): Promise<ScrapingTarget>;
+  updateScrapingTarget(id: number, data: Partial<ScrapingTarget>): Promise<ScrapingTarget | undefined>;
 }
 
 import { db } from './db';
@@ -238,6 +262,121 @@ export class DatabaseStorage implements IStorage {
       .where(eq(scheduledContent.id, id))
       .returning();
     return updatedContent;
+  }
+
+  // Scraped Content methods
+  async getScrapedContent(limit = 50, offset = 0): Promise<ScrapedContent[]> {
+    return await db.select()
+      .from(scrapedContent)
+      .where(eq(scrapedContent.status, 'active'))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getScrapedContentById(id: number): Promise<ScrapedContent | undefined> {
+    const [content] = await db.select()
+      .from(scrapedContent)
+      .where(eq(scrapedContent.id, id));
+    return content;
+  }
+
+  async getScrapedContentByUrl(url: string): Promise<ScrapedContent | undefined> {
+    const [content] = await db.select()
+      .from(scrapedContent)
+      .where(eq(scrapedContent.url, url));
+    return content;
+  }
+
+  async createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent> {
+    const [newContent] = await db.insert(scrapedContent)
+      .values(content)
+      .returning();
+    return newContent;
+  }
+
+  async updateScrapedContent(id: number, data: Partial<ScrapedContent>): Promise<ScrapedContent | undefined> {
+    const [updatedContent] = await db.update(scrapedContent)
+      .set(data)
+      .where(eq(scrapedContent.id, id))
+      .returning();
+    return updatedContent;
+  }
+
+  async deleteScrapedContent(id: number): Promise<boolean> {
+    const result = await db.delete(scrapedContent)
+      .where(eq(scrapedContent.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getRecentScrapedContent(days = 7): Promise<ScrapedContent[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return await db.select()
+      .from(scrapedContent)
+      .where(and(
+        eq(scrapedContent.status, 'active'),
+        // gte(scrapedContent.scrapedDate, cutoffDate)
+      ))
+      .orderBy(scrapedContent.scrapedDate);
+  }
+
+  // Expert Content Relevance methods
+  async getExpertContentRelevance(expertId: number, limit = 20): Promise<ExpertContentRelevance[]> {
+    return await db.select()
+      .from(expertContentRelevance)
+      .where(eq(expertContentRelevance.expertId, expertId))
+      .limit(limit);
+  }
+
+  async createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance> {
+    const [newRelevance] = await db.insert(expertContentRelevance)
+      .values(relevance)
+      .returning();
+    return newRelevance;
+  }
+
+  async getRelevantContentForExpert(expertId: number, limit = 5): Promise<ScrapedContent[]> {
+    // Get content ordered by relevance score for this expert
+    const relevantContent = await db.select({
+      scrapedContent
+    })
+      .from(expertContentRelevance)
+      .innerJoin(scrapedContent, eq(expertContentRelevance.scrapedContentId, scrapedContent.id))
+      .where(and(
+        eq(expertContentRelevance.expertId, expertId),
+        eq(scrapedContent.status, 'active')
+      ))
+      .orderBy(expertContentRelevance.relevanceScore)
+      .limit(limit);
+
+    return relevantContent.map(row => row.scrapedContent);
+  }
+
+  // Scraping Target methods
+  async getScrapingTargets(): Promise<ScrapingTarget[]> {
+    return await db.select().from(scrapingTargets);
+  }
+
+  async getActiveScrapingTargets(): Promise<ScrapingTarget[]> {
+    return await db.select()
+      .from(scrapingTargets)
+      .where(eq(scrapingTargets.isActive, true));
+  }
+
+  async createScrapingTarget(target: InsertScrapingTarget): Promise<ScrapingTarget> {
+    const [newTarget] = await db.insert(scrapingTargets)
+      .values(target)
+      .returning();
+    return newTarget;
+  }
+
+  async updateScrapingTarget(id: number, data: Partial<ScrapingTarget>): Promise<ScrapingTarget | undefined> {
+    const [updatedTarget] = await db.update(scrapingTargets)
+      .set(data)
+      .where(eq(scrapingTargets.id, id))
+      .returning();
+    return updatedTarget;
   }
 }
 
