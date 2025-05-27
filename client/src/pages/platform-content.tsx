@@ -93,6 +93,12 @@ export default function PlatformContentPage() {
   const filteredIdeas = contentIdeas.filter(
     (idea) => idea.platform === selectedPlatform
   );
+
+  console.log(`Filtering for platform: ${selectedPlatform}`, { 
+    totalIdeas: contentIdeas.length, 
+    filteredIdeas: filteredIdeas.length,
+    selectedTopicId 
+  });
   
   // Function to handle topic change
   const handleTopicChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
