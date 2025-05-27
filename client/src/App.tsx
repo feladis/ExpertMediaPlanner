@@ -9,8 +9,7 @@ import ProfilePage from "@/pages/profile";
 import ContentIdeas from "@/pages/content-ideas";
 import PlatformContent from "@/pages/platform-content";
 import ContentEditorPage from "@/pages/content-editor";
-import Sidebar from "@/components/sidebar";
-import Topbar from "@/components/topbar";
+import Header from "@/components/header";
 
 export interface Expert {
   id: number;
@@ -24,7 +23,7 @@ export interface Expert {
 function App() {
   const [expert, setExpert] = useState<Expert | null>(null);
   const [location] = useLocation();
-  const [showSidebar, setShowSidebar] = useState(true);
+
   const [authLoading, setAuthLoading] = useState(true);
 
   // Check for stored expert data and Replit auth on initial load
@@ -145,27 +144,21 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="h-screen flex bg-[#F5F6FA]">
-        {expert && showSidebar && (
-          <Sidebar expert={expert} onLogout={handleLogout} />
+      <div className="min-h-screen bg-[#F5F6FA]">
+        {expert && (
+          <Header expert={expert} onLogout={handleLogout} />
         )}
 
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {expert && (
-            <Topbar onToggleSidebar={toggleSidebar} expert={expert} />
-          )}
-
-          <main className="flex-1 relative overflow-y-auto focus:outline-none">
-            <Switch>
-              <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} authLoading={authLoading} />} />
-              <Route path="/profile" component={() => <ProfilePage expert={expert} onExpertUpdate={handleExpertUpdate} />} />
-              <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
-              <Route path="/platform-content" component={() => <PlatformContent />} />
-              <Route path="/content-editor" component={() => <ContentEditorPage />} />
-              <Route component={NotFound} />
-            </Switch>
-          </main>
-        </div>
+        <main className="pt-16 px-6 py-8">
+          <Switch>
+            <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} authLoading={authLoading} />} />
+            <Route path="/profile" component={() => <ProfilePage expert={expert} onExpertUpdate={handleExpertUpdate} />} />
+            <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
+            <Route path="/platform-content" component={() => <PlatformContent />} />
+            <Route path="/content-editor" component={() => <ContentEditorPage />} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
       </div>
       <Toaster />
     </QueryClientProvider>
