@@ -291,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Topic Generation API
+  // AI Topic Generation API - SCRAPING-FIRST ENFORCEMENT
   app.post('/api/generate-topics', async (req: Request, res: Response) => {
     try {
       const { expertId, count } = req.body;
@@ -307,7 +307,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Expert profile not found' });
       }
       
-      // Generate topics using Anthropic
+      // SCRAPING-FIRST ENFORCEMENT: Check if we have scraped content
+      const relevantContent = await storage.getRelevantContentForExpert(parseInt(expertId), 1);
+      
+      if (relevantContent.length === 0) {
+        // Auto-sync sources and try scraping
+        const { profileScrapingSync } = await import('./profile-scraping-sync');
+        await profileScrapingSync.syncExpertSources(parseInt(expertId));
+        
+        // Check again after sync
+        const contentAfterSync = await storage.getRelevantContentForExpert(parseInt(expertId), 1);
+        
+        if (contentAfterSync.length === 0) {
+          return res.status(400).json({ 
+            message: 'Cannot generate topics without authentic sources. Please ensure your profile has valid information sources and try again.',
+            code: 'NO_SCRAPED_CONTENT'
+          });
+        }
+      }
+      
+      // Generate topics using Anthropic with scraped content context
       const topics = await generateTopics({
         primaryExpertise: profile.primaryExpertise || '',
         secondaryExpertise: profile.secondaryExpertise || [],
@@ -352,53 +371,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Content Idea Generation API
+  // AI Content Idea Generation API - SCRAPING-FIRST WORKFLOW
   app.post('/api/generate-content-ideas', async (req: Request, res: Response) => {
     try {
       const { topicId, platform, expertId } = req.body;
-      
+
       if (!topicId || !platform || !expertId) {
+        return res.status(400).json({ message: 'Topic ID, platform, and expert ID are required for scraping-first generation' });
+      }
+
+      // Import content pipeline
+      const { contentPipeline } = await import('./content-pipeline');
+
+      // Use scraping-first workflow
+      const result = await contentPipeline.generateContentWithScraping({
+        topicId,
+        platform,
+        expertId
+      });
+
+      res.status(201).json({
+        ideas: result.ideas,
+        metadata: {
+          sourcesUsed: result.sourcesUsed,
+          timestamp: result.timestamp,
+          scrapingFirst: true
+        }
+      });
+    } catch (err: any) {
+      console.error('Content generation error:', err);
+      if (err.message && err.message.includes('No scraped content available')) {
         return res.status(400).json({ 
-          message: 'Topic ID, platform, and expert ID are required' 
+          message: err.message,
+          suggestion: 'Please ensure your expert profile has valid information sources configured.'
         });
       }
-      
-      // Get the topic and viewpoints
-      const topic = await storage.getTopic(parseInt(topicId));
-      if (!topic) {
-        return res.status(404).json({ message: 'Topic not found' });
-      }
-      
-      const viewpoints = await storage.getViewpoints(parseInt(topicId));
-      
-      // Get expert profile
-      const profile = await storage.getExpertProfile(parseInt(expertId));
-      if (!profile) {
-        return res.status(404).json({ message: 'Expert profile not found' });
-      }
-      
-      // Generate content ideas using Anthropic with RAG system
-      const contentIdeas = await generateContentIdeas({
-        topic: topic.title,
-        description: topic.description || '',
-        platform,
-        viewpoints: viewpoints.map(v => v.title),
-        expertiseKeywords: profile.expertiseKeywords || [],
-        voiceTone: profile.voiceTone || [],
-        expertId: profile.expertId
-      });
-      
-      // Save content ideas to storage
-      const savedIdeas = [];
-      
-      for (const idea of contentIdeas) {
-        const newIdea = await storage.createContentIdea({
-          topicId: parseInt(topicId),
-          platform,
-          title: idea.title,
-          description: idea.description,
-          format: idea.format,
-          keyPoints: idea.keyPoints,
+      handleError(err, res);
+    }
+  });
           sources: idea.sources
         });
         
