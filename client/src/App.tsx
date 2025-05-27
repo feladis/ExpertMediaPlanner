@@ -24,7 +24,7 @@ export interface Expert {
 function App() {
   const [expert, setExpert] = useState<Expert | null>(null);
   const [location] = useLocation();
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
 
   // Check for stored expert data and Replit auth on initial load
@@ -145,30 +145,10 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="h-screen flex bg-[#F5F6FA] relative">
-        {/* Mobile backdrop */}
-        {showSidebar && (
-          <div 
-            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={toggleSidebar}
-          />
+      <div className="h-screen flex bg-[#F5F6FA]">
+        {expert && showSidebar && (
+          <Sidebar expert={expert} onLogout={handleLogout} />
         )}
-        
-        {/* Sidebar */}
-        <aside className={`
-          ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0
-          transform transition-transform duration-300 ease-in-out
-          fixed md:relative
-          top-0 left-0
-          z-50 md:z-auto
-          h-full
-          w-64
-        `}>
-          {expert && (
-            <Sidebar expert={expert} onLogout={handleLogout} />
-          )}
-        </aside>
 
         <div className="flex flex-col flex-1 overflow-hidden">
           {expert && (
