@@ -122,7 +122,7 @@ export class DatabaseStorage implements IStorage {
     };
 
     const [newProfile] = await db.insert(expertProfiles)
-      .values(formattedProfile)
+      .values([formattedProfile])
       .returning();
     
     // Mark the expert's profile as complete
@@ -164,7 +164,7 @@ export class DatabaseStorage implements IStorage {
     };
     
     const [newTopic] = await db.insert(topics)
-      .values(fullTopic)
+      .values([fullTopic])
       .returning();
     return newTopic;
   }
