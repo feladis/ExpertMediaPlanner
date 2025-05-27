@@ -387,7 +387,7 @@ export function calculateRelevanceScore(
     ...(expertProfile.expertiseKeywords || []),
     expertProfile.primaryExpertise,
     ...(expertProfile.secondaryExpertise || [])
-  ].filter(Boolean).map(k => k.toLowerCase());
+  ].filter(Boolean).map(k => k?.toLowerCase()).filter(Boolean);
 
   const contentKeywords = scrapedContent.keywords || [];
   const contentText = `${scrapedContent.title} ${scrapedContent.content}`.toLowerCase();

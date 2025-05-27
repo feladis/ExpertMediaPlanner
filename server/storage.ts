@@ -113,16 +113,16 @@ export class DatabaseStorage implements IStorage {
     // Extract array types to ensure proper formatting
     const formattedProfile = {
       ...profile,
-      secondaryExpertise: profile.secondaryExpertise || [],
-      expertiseKeywords: profile.expertiseKeywords || [],
-      voiceTone: profile.voiceTone || [],
-      platforms: profile.platforms || [],
-      informationSources: profile.informationSources || [],
-      contentGoals: profile.contentGoals || []
+      secondaryExpertise: Array.isArray(profile.secondaryExpertise) ? profile.secondaryExpertise : [],
+      expertiseKeywords: Array.isArray(profile.expertiseKeywords) ? profile.expertiseKeywords : [],
+      voiceTone: Array.isArray(profile.voiceTone) ? profile.voiceTone : [],
+      platforms: Array.isArray(profile.platforms) ? profile.platforms : [],
+      informationSources: Array.isArray(profile.informationSources) ? profile.informationSources : [],
+      contentGoals: Array.isArray(profile.contentGoals) ? profile.contentGoals : []
     };
 
     const [newProfile] = await db.insert(expertProfiles)
-      .values(formattedProfile)
+      .values([formattedProfile])
       .returning();
     
     // Mark the expert's profile as complete
@@ -164,7 +164,7 @@ export class DatabaseStorage implements IStorage {
     };
     
     const [newTopic] = await db.insert(topics)
-      .values(fullTopic)
+      .values([fullTopic])
       .returning();
     return newTopic;
   }
@@ -223,7 +223,7 @@ export class DatabaseStorage implements IStorage {
 
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
     const [newIdea] = await db.insert(contentIdeas)
-      .values(idea)
+      .values([idea])
       .returning();
     return newIdea;
   }
@@ -286,7 +286,7 @@ export class DatabaseStorage implements IStorage {
 
   async createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent> {
     const [newContent] = await db.insert(scrapedContent)
-      .values(content)
+      .values([content])
       .returning();
     return newContent;
   }
@@ -302,7 +302,7 @@ export class DatabaseStorage implements IStorage {
   async deleteScrapedContent(id: number): Promise<boolean> {
     const result = await db.delete(scrapedContent)
       .where(eq(scrapedContent.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getRecentScrapedContent(days = 7): Promise<ScrapedContent[]> {
@@ -328,7 +328,7 @@ export class DatabaseStorage implements IStorage {
 
   async createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance> {
     const [newRelevance] = await db.insert(expertContentRelevance)
-      .values(relevance)
+      .values([relevance])
       .returning();
     return newRelevance;
   }
