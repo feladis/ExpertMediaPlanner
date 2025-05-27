@@ -76,13 +76,7 @@ export default function Header({ expert, onLogout }: HeaderProps) {
         {/* User Profile & Actions */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={expert.profileImage} alt={expert.name} />
-              <AvatarFallback className="bg-[#0984E3] text-white">
-                {expert.name.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="ml-3">
+            <div className="text-right">
               <p className="text-sm font-medium text-[#2D3436]">{expert.name}</p>
               <p className="text-xs text-gray-500">{expert.role}</p>
             </div>
