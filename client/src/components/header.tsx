@@ -77,7 +77,6 @@ export default function Header({ expert, onLogout }: HeaderProps) {
         <div className="flex items-center space-x-4">
           <div className="flex items-center">
             <div className="text-right">
-              <p className="text-sm font-medium text-[#2D3436]">{expert.name}</p>
               <p className="text-xs text-gray-500">{expert.role}</p>
             </div>
           </div>
