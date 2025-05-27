@@ -458,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: 'Content Creator',
           password: '', // No password needed for Replit auth
           replitId: replitUserId,
-          profileComplete: false
+
         });
       } else if (!expert.replitId) {
         // Update existing expert with Replit ID
@@ -625,11 +625,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const target of targets) {
         try {
-          const result = await scraper.scrapeUrl(target.url);
+          const result = await scraper.scrapeUrl(target.baseUrl);
           
           if (result.success && result.content) {
             // Check if content already exists
-            const existing = await storage.getScrapedContentByUrl(target.url);
+            const existing = await storage.getScrapedContentByUrl(target.baseUrl);
             
             if (!existing) {
               // Save new content
@@ -649,15 +649,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
               
-              results.push({ url: target.url, success: true, contentId: savedContent.id });
+              results.push({ url: target.baseUrl, success: true, contentId: savedContent.id });
             } else {
-              results.push({ url: target.url, success: true, message: 'Content already exists' });
+              results.push({ url: target.baseUrl, success: true, message: 'Content already exists' });
             }
           } else {
-            results.push({ url: target.url, success: false, error: result.error });
+            results.push({ url: target.baseUrl, success: false, error: result.error });
           }
         } catch (error) {
-          results.push({ url: target.url, success: false, error: 'Scraping failed' });
+          results.push({ url: target.baseUrl, success: false, error: 'Scraping failed' });
         }
       }
       
