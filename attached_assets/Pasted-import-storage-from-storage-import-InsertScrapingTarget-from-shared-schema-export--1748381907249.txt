@@ -1,0 +1,110 @@
+import { storage } from './storage';
+import { InsertScrapingTarget } from '@shared/schema';
+
+export class ProfileScrapingSync {
+  /**
+   * Syncs all expert profiles' information sources to scraping targets
+   */
+  async syncAllExpertSources(): Promise<void> {
+    try {
+      // Get all experts with profiles
+      const experts = await this.getAllExperts();
+      
+      for (const expert of experts) {
+        await this.syncExpertSources(expert.id);
+      }
+      
+      console.log('Successfully synced all expert sources to scraping targets');
+    } catch (error) {
+      console.error('Error syncing expert sources:', error);
+    }
+  }
+
+  /**
+   * Syncs a specific expert's information sources to scraping targets
+   */
+  async syncExpertSources(expertId: number): Promise<void> {
+    try {
+      const profile = await storage.getExpertProfile(expertId);
+      
+      if (!profile || !profile.informationSources) {
+        console.log(`No information sources found for expert ${expertId}`);
+        return;
+      }
+
+      for (const source of profile.informationSources) {
+        if (source.url && this.isValidUrl(source.url)) {
+          await this.createOrUpdateScrapingTarget(source.url, source.name);
+        }
+      }
+    } catch (error) {
+      console.error(`Error syncing sources for expert ${expertId}:`, error);
+    }
+  }
+
+  /**
+   * Creates or updates a scraping target for a given URL
+   */
+  private async createOrUpdateScrapingTarget(url: string, sourceName: string): Promise<void> {
+    try {
+      const domain = new URL(url).hostname;
+      
+      // Check if target already exists
+      const existingTargets = await storage.getScrapingTargets();
+      const existingTarget = existingTargets.find(t => t.domain === domain);
+      
+      if (!existingTarget) {
+        const newTarget: InsertScrapingTarget = {
+          domain,
+          baseUrl: url,
+          isActive: true,
+          scrapingFrequency: 24, // 24 hours
+          rateLimit: 2000, // 2 seconds
+          maxPages: 10
+        };
+        
+        await storage.createScrapingTarget(newTarget);
+        console.log(`Created scraping target for ${domain} (${sourceName})`);
+      } else if (!existingTarget.isActive) {
+        // Reactivate if it was disabled
+        await storage.updateScrapingTarget(existingTarget.id, { isActive: true });
+        console.log(`Reactivated scraping target for ${domain}`);
+      }
+    } catch (error) {
+      console.error(`Error creating scraping target for ${url}:`, error);
+    }
+  }
+
+  private async getAllExperts(): Promise<Array<{id: number}>> {
+    try {
+      // Get expert IDs by checking which ones have profiles
+      const expertIds = [];
+      for (let i = 1; i <= 50; i++) { // Check first 50 IDs
+        try {
+          const expert = await storage.getExpert(i);
+          if (expert && expert.profileComplete) {
+            expertIds.push({ id: i });
+          }
+        } catch {
+          // Expert doesn't exist, continue
+        }
+      }
+      
+      return expertIds;
+    } catch (error) {
+      console.error('Error getting all experts:', error);
+      return [];
+    }
+  }
+
+  private isValidUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+}
+
+export const profileScrapingSync = new ProfileScrapingSync();
