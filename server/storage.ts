@@ -122,7 +122,7 @@ export class DatabaseStorage implements IStorage {
     };
 
     const [newProfile] = await db.insert(expertProfiles)
-      .values([formattedProfile])
+      .values(formattedProfile)
       .returning();
     
     // Mark the expert's profile as complete
@@ -156,7 +156,11 @@ export class DatabaseStorage implements IStorage {
   async createTopic(topic: InsertTopic): Promise<Topic> {
     // Add some randomness for trending/engagement like the in-memory version
     const fullTopic = {
-      ...topic,
+      expertId: topic.expertId,
+      title: topic.title,
+      description: topic.description,
+      category: topic.category,
+      tags: topic.tags || [],
       trending: Math.random() > 0.7,
       engagement: Math.random() > 0.6 ? "high" : "normal",
       isRecommended: Math.random() > 0.8,
@@ -164,7 +168,7 @@ export class DatabaseStorage implements IStorage {
     };
     
     const [newTopic] = await db.insert(topics)
-      .values([fullTopic])
+      .values(fullTopic)
       .returning();
     return newTopic;
   }
@@ -222,8 +226,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
+    const formattedIdea = {
+      title: idea.title,
+      topicId: idea.topicId,
+      platform: idea.platform,
+      description: idea.description,
+      format: idea.format,
+      keyPoints: idea.keyPoints || [],
+      sources: idea.sources || [],
+
+    };
+    
     const [newIdea] = await db.insert(contentIdeas)
-      .values(idea)
+      .values(formattedIdea)
       .returning();
     return newIdea;
   }
@@ -327,8 +342,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance> {
+    const formattedRelevance = {
+      expertId: relevance.expertId,
+      scrapedContentId: relevance.scrapedContentId,
+      relevanceScore: relevance.relevanceScore,
+      matchedKeywords: relevance.matchedKeywords || []
+    };
+    
     const [newRelevance] = await db.insert(expertContentRelevance)
-      .values(relevance)
+      .values(formattedRelevance)
       .returning();
     return newRelevance;
   }
