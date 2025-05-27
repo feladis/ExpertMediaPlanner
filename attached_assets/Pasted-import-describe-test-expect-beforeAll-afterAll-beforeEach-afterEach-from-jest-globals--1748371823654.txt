@@ -1,0 +1,591 @@
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+import request from 'supertest';
+import express from 'express';
+import { registerRoutes } from '../server/routes';
+import { DatabaseStorage } from '../server/storage';
+import { WebScraper, calculateRelevanceScore } from '../server/scraping';
+
+describe('Comprehensive Regression Test Suite', () => {
+  let app: express.Application;
+  let storage: DatabaseStorage;
+  let testExpertId: number;
+  let testTopicId: number;
+  let testScrapedContentId: number;
+
+  beforeAll(async () => {
+    // Initialize application
+    app = express();
+    app.use(express.json());
+    await registerRoutes(app);
+    storage = new DatabaseStorage();
+
+    // Seed test data
+    await seedTestData();
+  });
+
+  afterAll(async () => {
+    // Cleanup test data
+    await cleanupTestData();
+  });
+
+  async function seedTestData() {
+    try {
+      // Create test expert
+      const expert = await storage.createExpert({
+        username: 'test-regression-user',
+        name: 'Regression Test Expert',
+        role: 'Content Creator',
+        password: 'test123',
+        replitId: 'test-replit-id',
+        profileComplete: true
+      });
+      testExpertId = expert.id;
+
+      // Create expert profile
+      await storage.createExpertProfile({
+        expertId: testExpertId,
+        primaryExpertise: 'Artificial Intelligence',
+        secondaryExpertise: ['Machine Learning', 'Data Science'],
+        expertiseKeywords: ['AI', 'ML', 'neural networks', 'deep learning'],
+        voiceTone: ['professional', 'technical'],
+        personalBranding: 'AI thought leader and researcher',
+        platforms: ['linkedin', 'twitter'],
+        targetAudience: 'Tech professionals and researchers',
+        contentGoals: ['education', 'thought leadership']
+      });
+
+      // Create test topic
+      const topic = await storage.createTopic({
+        expertId: testExpertId,
+        title: 'Future of AI in Healthcare',
+        description: 'Exploring AI applications in medical diagnosis and treatment',
+        category: 'Technology',
+        tags: ['AI', 'healthcare', 'medical', 'diagnosis']
+      });
+      testTopicId = topic.id;
+
+      // Create viewpoints
+      await storage.createViewpoint({
+        topicId: testTopicId,
+        title: 'Diagnostic Accuracy Improvements',
+        description: 'How AI enhances medical diagnostic precision'
+      });
+
+      await storage.createViewpoint({
+        topicId: testTopicId,
+        title: 'Ethical Considerations',
+        description: 'Privacy and bias concerns in AI healthcare'
+      });
+
+      // Create test scraped content
+      const scrapedContent = await storage.createScrapedContent({
+        url: 'https://example.com/ai-healthcare-article',
+        title: 'Revolutionary AI Transforms Medical Diagnosis',
+        content: 'Artificial intelligence and machine learning technologies are revolutionizing healthcare by improving diagnostic accuracy and enabling personalized treatment plans. Deep learning algorithms can now analyze medical images with precision that rivals experienced radiologists.',
+        summary: 'AI technologies improving medical diagnosis and treatment',
+        author: 'Dr. Jane Smith',
+        publishedDate: new Date('2024-01-15'),
+        scrapedDate: new Date(),
+        contentHash: 'test-hash-ai-healthcare',
+        domain: 'example.com',
+        wordCount: 50,
+        relevanceScore: 0,
+        status: 'active',
+        keywords: ['artificial intelligence', 'machine learning', 'healthcare', 'diagnosis', 'medical']
+      });
+      testScrapedContentId = scrapedContent.id!;
+
+    } catch (error) {
+      console.error('Failed to seed test data:', error);
+      throw error;
+    }
+  }
+
+  async function cleanupTestData() {
+    try {
+      if (testScrapedContentId) {
+        await storage.deleteScrapedContent(testScrapedContentId);
+      }
+      if (testTopicId) {
+        await storage.deleteTopic(testTopicId);
+      }
+      if (testExpertId) {
+        // Delete expert profile and expert
+        await storage.deleteExpertProfile(testExpertId);
+        await storage.deleteExpert(testExpertId);
+      }
+    } catch (error) {
+      console.error('Failed to cleanup test data:', error);
+    }
+  }
+
+  describe('1. Authentication & Authorization Critical Tests', () => {
+    test('1.1.1 Replit authentication with valid headers', async () => {
+      const response = await request(app)
+        .post('/api/auth/replit')
+        .set('x-replit-user-id', 'test-user-123')
+        .set('x-replit-user-name', 'testuser')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('username');
+      expect(response.body.username).toBe('testuser');
+    });
+
+    test('1.1.2 Missing Replit headers fallback behavior', async () => {
+      const response = await request(app)
+        .post('/api/auth/replit')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('authentication headers not found');
+    });
+
+    test('1.1.3 Invalid Replit data handling', async () => {
+      const response = await request(app)
+        .post('/api/auth/replit')
+        .set('x-replit-user-id', '')
+        .set('x-replit-user-name', '')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message');
+    });
+
+    test('1.2.1 Username/password authentication', async () => {
+      const response = await request(app)
+        .post('/api/login')
+        .send({
+          username: 'test-regression-user',
+          password: 'test123'
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.username).toBe('test-regression-user');
+    });
+
+    test('1.2.2 Invalid credentials handling', async () => {
+      const response = await request(app)
+        .post('/api/login')
+        .send({
+          username: 'invalid-user',
+          password: 'wrong-password'
+        })
+        .expect(401);
+
+      expect(response.body.message).toBe('Invalid credentials');
+    });
+  });
+
+  describe('2. Expert Profile Management', () => {
+    test('2.1.1 Expert profile retrieval', async () => {
+      const response = await request(app)
+        .get(`/api/expert-profiles/${testExpertId}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('primaryExpertise');
+      expect(response.body.primaryExpertise).toBe('Artificial Intelligence');
+      expect(response.body.expertiseKeywords).toContain('AI');
+      expect(response.body.platforms).toContain('linkedin');
+    });
+
+    test('2.1.2 Profile data validation', async () => {
+      const response = await request(app)
+        .post('/api/expert-profiles')
+        .send({
+          expertId: 99999, // Non-existent expert
+          primaryExpertise: '',
+          platforms: []
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
+
+    test('2.2.1 Profile update functionality', async () => {
+      const updateData = {
+        personalBranding: 'Updated AI thought leader and innovation expert'
+      };
+
+      const response = await request(app)
+        .patch(`/api/expert-profiles/${testExpertId}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.personalBranding).toBe(updateData.personalBranding);
+    });
+  });
+
+  describe('3. Content Generation System', () => {
+    test('3.1.1 Topic generation endpoint validation', async () => {
+      const response = await request(app)
+        .post('/api/generate-topics')
+        .send({
+          expertId: testExpertId,
+          count: 2
+        });
+
+      // Should either succeed or fail gracefully with external API issues
+      if (response.status === 201) {
+        expect(Array.isArray(response.body)).toBe(true);
+        if (response.body.length > 0) {
+          expect(response.body[0]).toHaveProperty('title');
+          expect(response.body[0]).toHaveProperty('category');
+        }
+      } else {
+        expect(response.status).toBeGreaterThanOrEqual(400);
+        expect(response.body).toHaveProperty('message');
+      }
+    });
+
+    test('3.1.2 Topic generation with invalid expert', async () => {
+      const response = await request(app)
+        .post('/api/generate-topics')
+        .send({
+          expertId: 99999,
+          count: 1
+        })
+        .expect(404);
+
+      expect(response.body.message).toBe('Expert profile not found');
+    });
+
+    test('3.2.1 Content idea generation', async () => {
+      const response = await request(app)
+        .post('/api/generate-content-ideas')
+        .send({
+          topicId: testTopicId,
+          platform: 'linkedin',
+          expertId: testExpertId
+        });
+
+      // Should either succeed or fail gracefully with external API issues
+      if (response.status === 201) {
+        expect(Array.isArray(response.body)).toBe(true);
+        if (response.body.length > 0) {
+          expect(response.body[0]).toHaveProperty('title');
+          expect(response.body[0]).toHaveProperty('platform');
+          expect(response.body[0].platform).toBe('linkedin');
+        }
+      } else {
+        expect(response.status).toBeGreaterThanOrEqual(400);
+      }
+    });
+
+    test('3.2.2 Content idea generation validation', async () => {
+      const response = await request(app)
+        .post('/api/generate-content-ideas')
+        .send({
+          // Missing required fields
+        })
+        .expect(400);
+
+      expect(response.body.message).toContain('required');
+    });
+  });
+
+  describe('4. Web Scraping & RAG System', () => {
+    test('4.1.1 Single URL scraping with valid content', async () => {
+      const response = await request(app)
+        .post('/api/scrape-url')
+        .send({
+          url: 'https://httpbin.org/html' // Test URL that returns HTML
+        });
+
+      // Should either succeed or fail gracefully
+      if (response.status === 200) {
+        expect(response.body.success).toBe(true);
+        expect(response.body.content).toHaveProperty('url');
+        expect(response.body.content).toHaveProperty('title');
+      } else {
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
+      }
+    });
+
+    test('4.1.2 Invalid URL handling', async () => {
+      const response = await request(app)
+        .post('/api/scrape-url')
+        .send({
+          url: 'not-a-valid-url'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body).toHaveProperty('error');
+    });
+
+    test('4.1.3 Missing URL parameter', async () => {
+      const response = await request(app)
+        .post('/api/scrape-url')
+        .send({})
+        .expect(400);
+
+      expect(response.body.message).toBe('URL is required');
+    });
+
+    test('4.3.1 Relevance scoring accuracy', async () => {
+      // Get the expert profile
+      const profile = await storage.getExpertProfile(testExpertId);
+      const scrapedContent = await storage.getScrapedContentById(testScrapedContentId);
+
+      expect(profile).toBeDefined();
+      expect(scrapedContent).toBeDefined();
+
+      if (profile && scrapedContent) {
+        const relevanceScore = calculateRelevanceScore(scrapedContent, profile);
+        
+        expect(relevanceScore).toBeGreaterThanOrEqual(0);
+        expect(relevanceScore).toBeLessThanOrEqual(100);
+        
+        // Should score high due to AI/ML keyword matches
+        expect(relevanceScore).toBeGreaterThan(50);
+      }
+    });
+
+    test('4.3.2 Relevance calculation endpoint', async () => {
+      const response = await request(app)
+        .post('/api/calculate-relevance')
+        .send({
+          expertId: testExpertId,
+          scrapedContentId: testScrapedContentId
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('relevanceScore');
+      expect(response.body.relevanceScore).toBeGreaterThanOrEqual(0);
+      expect(response.body.relevanceScore).toBeLessThanOrEqual(100);
+    });
+
+    test('4.2.1 Bulk scraping operation', async () => {
+      const response = await request(app)
+        .post('/api/bulk-scrape')
+        .send({
+          expertId: testExpertId
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('results');
+      expect(response.body).toHaveProperty('totalProcessed');
+      expect(Array.isArray(response.body.results)).toBe(true);
+      expect(typeof response.body.totalProcessed).toBe('number');
+    });
+  });
+
+  describe('5. Content Management Workflows', () => {
+    test('5.1.1 Content ideas retrieval', async () => {
+      const response = await request(app)
+        .get(`/api/content-ideas/${testTopicId}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    test('5.1.2 Platform filtering', async () => {
+      const response = await request(app)
+        .get(`/api/content-ideas/${testTopicId}?platform=linkedin`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+      // If there are results, they should all be for LinkedIn
+      response.body.forEach((idea: any) => {
+        if (idea.platform) {
+          expect(idea.platform).toBe('linkedin');
+        }
+      });
+    });
+
+    test('5.2.1 Scheduled content management', async () => {
+      const response = await request(app)
+        .get(`/api/scheduled-content/${testExpertId}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+    });
+  });
+
+  describe('6. API Endpoint Performance & Validation', () => {
+    test('6.1.1 Pagination functionality', async () => {
+      const response = await request(app)
+        .get('/api/scraped-content?limit=5&offset=0')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeLessThanOrEqual(5);
+    });
+
+    test('6.1.2 Response format validation', async () => {
+      const response = await request(app)
+        .get('/api/scraped-content')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+      
+      if (response.body.length > 0) {
+        const content = response.body[0];
+        expect(content).toHaveProperty('id');
+        expect(content).toHaveProperty('url');
+        expect(content).toHaveProperty('title');
+        expect(content).toHaveProperty('status');
+      }
+    });
+
+    test('6.2.1 Input validation on creation endpoints', async () => {
+      const response = await request(app)
+        .post('/api/topics')
+        .send({
+          // Missing required fields
+          title: '',
+          expertId: 'invalid'
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
+
+    test('6.2.2 Error response consistency', async () => {
+      const response = await request(app)
+        .get('/api/experts/99999')
+        .expect(404);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toBe('Expert not found');
+    });
+  });
+
+  describe('7. Data Integrity & Relationships', () => {
+    test('7.1.1 Foreign key relationships', async () => {
+      // Test that topics are properly linked to experts
+      const topics = await request(app)
+        .get(`/api/topics/${testExpertId}`)
+        .expect(200);
+
+      expect(Array.isArray(topics.body)).toBe(true);
+      
+      if (topics.body.length > 0) {
+        expect(topics.body[0]).toHaveProperty('expertId');
+        expect(topics.body[0].expertId).toBe(testExpertId);
+      }
+    });
+
+    test('7.1.2 Cascade deletion prevention', async () => {
+      // Attempt to delete expert with associated data
+      const response = await request(app)
+        .delete(`/api/experts/${testExpertId}`);
+
+      // Should either prevent deletion or handle cascade properly
+      if (response.status === 400) {
+        expect(response.body).toHaveProperty('message');
+      }
+    });
+  });
+
+  describe('8. Security & Input Validation', () => {
+    test('8.1.1 SQL injection prevention', async () => {
+      const maliciousInput = "'; DROP TABLE experts; --";
+      
+      const response = await request(app)
+        .post('/api/experts')
+        .send({
+          username: maliciousInput,
+          name: 'Test User',
+          role: 'Content Creator',
+          password: 'test123'
+        });
+
+      // Should either reject the input or safely handle it
+      expect([400, 500]).toContain(response.status);
+    });
+
+    test('8.1.2 XSS prevention in content fields', async () => {
+      const xssPayload = '<script>alert("xss")</script>';
+      
+      const response = await request(app)
+        .post('/api/topics')
+        .send({
+          expertId: testExpertId,
+          title: xssPayload,
+          description: 'Test description',
+          category: 'Test'
+        });
+
+      if (response.status === 201) {
+        // If creation succeeds, verify content is sanitized
+        expect(response.body.title).not.toContain('<script>');
+      }
+    });
+
+    test('8.2.1 Unauthorized access prevention', async () => {
+      const response = await request(app)
+        .patch('/api/expert-profiles/99999')
+        .send({
+          primaryExpertise: 'Unauthorized Update'
+        })
+        .expect(404);
+
+      expect(response.body.message).toBe('Profile not found');
+    });
+  });
+
+  describe('9. Error Handling & Recovery', () => {
+    test('9.1.1 Graceful API error handling', async () => {
+      const response = await request(app)
+        .get('/api/non-existent-endpoint')
+        .expect(404);
+    });
+
+    test('9.1.2 Malformed JSON handling', async () => {
+      const response = await request(app)
+        .post('/api/experts')
+        .set('Content-Type', 'application/json')
+        .send('{ invalid json }')
+        .expect(400);
+    });
+
+    test('9.2.1 Database connection resilience', async () => {
+      // Test continues to function under stress
+      const promises = [];
+      for (let i = 0; i < 10; i++) {
+        promises.push(
+          request(app)
+            .get(`/api/experts/${testExpertId}`)
+        );
+      }
+
+      const results = await Promise.all(promises);
+      results.forEach(result => {
+        expect([200, 404]).toContain(result.status);
+      });
+    });
+  });
+
+  describe('10. Performance Benchmarks', () => {
+    test('10.1.1 API response time benchmarks', async () => {
+      const startTime = Date.now();
+      
+      await request(app)
+        .get('/api/scraped-content?limit=20')
+        .expect(200);
+      
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+      
+      // Should respond within 2 seconds for regression testing
+      expect(responseTime).toBeLessThan(2000);
+    });
+
+    test('10.1.2 Bulk operation performance', async () => {
+      const startTime = Date.now();
+      
+      await request(app)
+        .post('/api/bulk-scrape')
+        .send({ expertId: testExpertId });
+      
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+      
+      // Bulk operations should complete within reasonable time
+      expect(responseTime).toBeLessThan(30000); // 30 seconds
+    });
+  });
+});
