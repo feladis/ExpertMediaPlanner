@@ -1,0 +1,122 @@
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+interface TestResult {
+  suite: string;
+  passed: number;
+  failed: number;
+  errors: string[];
+}
+
+export class RegressionTestRunner {
+  async runComprehensiveTests(): Promise<TestResult[]> {
+    const testSuites = [
+      'content-authenticity.test.ts',
+      'api.test.ts',
+      'scraping.test.ts',
+      'storage.test.ts'
+    ];
+
+    const results: TestResult[] = [];
+
+    for (const suite of testSuites) {
+      try {
+        console.log(`Running test suite: ${suite}`);
+        const { stdout, stderr } = await execAsync(`npm test -- ${suite}`);
+        
+        const result = this.parseTestResults(suite, stdout, stderr);
+        results.push(result);
+        
+        if (result.failed > 0) {
+          console.error(`❌ FAILURES in ${suite}:`, result.errors);
+        } else {
+          console.log(`✅ ${suite} passed all tests`);
+        }
+      } catch (error) {
+        console.error(`💥 ${suite} crashed:`, error);
+        results.push({
+          suite,
+          passed: 0,
+          failed: 1,
+          errors: [`Test suite crashed: ${error}`]
+        });
+      }
+    }
+
+    return results;
+  }
+
+  private parseTestResults(suite: string, stdout: string, stderr: string): TestResult {
+    // Parse Jest output format
+    const passMatch = stdout.match(/(\d+) passing/);
+    const failMatch = stdout.match(/(\d+) failing/);
+    
+    return {
+      suite,
+      passed: passMatch ? parseInt(passMatch[1]) : 0,
+      failed: failMatch ? parseInt(failMatch[1]) : 0,
+      errors: stderr ? [stderr] : []
+    };
+  }
+
+  async validateDataIntegrity(): Promise<boolean> {
+    console.log('🔍 Validating data integrity...');
+    
+    // Check for fake content in database
+    try {
+      const { stdout } = await execAsync(`
+        node -e "
+          const { storage } = require('./server/storage');
+          (async () => {
+            const content = await storage.getScrapedContent(100, 0);
+            const fakeContent = content.filter(c => 
+              /example\\.com|test\\.com|placeholder|lorem ipsum/i.test(c.url + ' ' + c.title + ' ' + c.content)
+            );
+            console.log('Fake content found:', fakeContent.length);
+            process.exit(fakeContent.length > 0 ? 1 : 0);
+          })();
+        "
+      `);
+      
+      console.log('✅ No fake content detected in database');
+      return true;
+    } catch (error) {
+      console.error('❌ Fake content detected in database');
+      return false;
+    }
+  }
+}
+
+// Export for CLI usage
+if (require.main === module) {
+  const runner = new RegressionTestRunner();
+  
+  (async () => {
+    console.log('🚀 Starting Comprehensive Regression Tests...\n');
+    
+    const testResults = await runner.runComprehensiveTests();
+    const dataIntegrityValid = await runner.validateDataIntegrity();
+    
+    console.log('\n📊 FINAL TEST SUMMARY:');
+    console.log('========================');
+    
+    let totalPassed = 0;
+    let totalFailed = 0;
+    
+    testResults.forEach(result => {
+      console.log(`${result.suite}: ${result.passed} passed, ${result.failed} failed`);
+      totalPassed += result.passed;
+      totalFailed += result.failed;
+    });
+    
+    console.log(`\nTOTAL: ${totalPassed} passed, ${totalFailed} failed`);
+    console.log(`Data Integrity: ${dataIntegrityValid ? 'VALID' : 'INVALID'}`);
+    
+    const overallSuccess = totalFailed === 0 && dataIntegrityValid;
+    console.log(`\n${overallSuccess ? '✅ ALL TESTS PASSED' : '❌ TESTS FAILED'}`);
+    
+    process.exit(overallSuccess ? 0 : 1);
+  })();
+}

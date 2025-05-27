@@ -39,11 +39,6 @@ export class WebScraper {
         return { success: false, error: 'Invalid URL provided' };
       }
 
-      // CRITICAL: Block suspicious URLs that could be fake
-      if (this.isSuspiciousUrl(url)) {
-        return { success: false, error: 'Suspicious URL pattern detected - refusing to scrape' };
-      }
-
       // Fetch content with timeout
       const response = await this.fetchWithTimeout(url);
       
@@ -145,6 +140,12 @@ export class WebScraper {
 
       // Check content length limit
       if (content.length > this.options.maxContentLength!) {
+        return null;
+      }
+
+      // Validate content authenticity
+      if (!this.isContentAuthentic(title, content)) {
+        console.warn(`Rejected fake/placeholder content from ${url}`);
         return null;
       }
 
@@ -338,29 +339,74 @@ export class WebScraper {
   private isValidUrl(url: string): boolean {
     try {
       const urlObj = new URL(url);
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+      
+      // Basic protocol check
+      if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+        return false;
+      }
+      
+      // Check for fake/placeholder domains
+      const fakeDomains = [
+        'example.com', 'example.org', 'example.net',
+        'test.com', 'test.org', 'test.net',
+        'placeholder.com', 'placeholder.org',
+        'dummy.com', 'fake.com', 'localhost',
+        '127.0.0.1', '0.0.0.0'
+      ];
+      
+      if (fakeDomains.includes(urlObj.hostname.toLowerCase())) {
+        console.warn(`Rejected fake/placeholder URL: ${url}`);
+        return false;
+      }
+      
+      // Additional checks for suspicious patterns
+      if (urlObj.hostname.includes('test') || urlObj.hostname.includes('placeholder')) {
+        console.warn(`Suspicious URL detected: ${url}`);
+        return false;
+      }
+      
+      return true;
     } catch {
       return false;
     }
   }
 
-  private isSuspiciousUrl(url: string): boolean {
-    // CRITICAL: Block known fake URL patterns that AI commonly generates
-    const suspiciousPatterns = [
-      /^https?:\/\/hbr\.org\/\d{4}\/\d{2}\//,
-      /^https?:\/\/www\.mckinsey\.com\/business-functions/,
-      /^https?:\/\/sloanreview\.mit\.edu\/article\//,
-      /^https?:\/\/www\.fastcompany\.com\/\d+/,
-      /^https?:\/\/example\.com/,
-      /^https?:\/\/.*\.example/,
-      /placeholder/i,
-      /fake/i,
-      /test\.com/,
-      /sample\.com/,
-      /dummy/i
+  private isContentAuthentic(title: string, content: string, author?: string | null): boolean {
+    // Check for Lorem Ipsum content
+    if (/lorem ipsum/i.test(content) || /lorem ipsum/i.test(title)) {
+      return false;
+    }
+    
+    // Check for obvious test/placeholder content
+    const testPatterns = [
+      /^(test|example|placeholder|dummy)/i,
+      /this is a (test|example|placeholder)/i,
+      /sample (content|article|text)/i
     ];
-
-    return suspiciousPatterns.some(pattern => pattern.test(url));
+    
+    const textToCheck = `${title} ${content} ${author || ''}`;
+    
+    for (const pattern of testPatterns) {
+      if (pattern.test(textToCheck)) {
+        return false;
+      }
+    }
+    
+    // Content should have reasonable length and diversity
+    if (content.length < 200) {
+      return false;
+    }
+    
+    // Check for word diversity (avoid repetitive fake content)
+    const words = content.toLowerCase().split(/\s+/);
+    const uniqueWords = new Set(words);
+    const diversityRatio = uniqueWords.size / words.length;
+    
+    if (diversityRatio < 0.3) {
+      return false;
+    }
+    
+    return true;
   }
 
   private isStopWord(word: string): boolean {
@@ -387,7 +433,7 @@ export function calculateRelevanceScore(
     ...(expertProfile.expertiseKeywords || []),
     expertProfile.primaryExpertise,
     ...(expertProfile.secondaryExpertise || [])
-  ].filter(Boolean).map(k => k?.toLowerCase()).filter(Boolean);
+  ].filter(Boolean).map(k => k.toLowerCase());
 
   const contentKeywords = scrapedContent.keywords || [];
   const contentText = `${scrapedContent.title} ${scrapedContent.content}`.toLowerCase();
@@ -395,7 +441,7 @@ export function calculateRelevanceScore(
   // Keyword matching (40% of score)
   let keywordMatches = 0;
   expertKeywords.forEach(keyword => {
-    if (keyword && contentText.includes(keyword)) {
+    if (contentText.includes(keyword)) {
       keywordMatches++;
       // Bonus for title matches
       if (scrapedContent.title.toLowerCase().includes(keyword)) {
