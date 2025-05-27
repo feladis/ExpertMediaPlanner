@@ -155,12 +155,14 @@ function App() {
         
         {/* Mobile sidebar - overlay when toggled */}
         {expert && showSidebar && (
-          <div className="md:hidden fixed inset-0 z-50 flex">
-            <div className="fixed inset-0 bg-black opacity-50" onClick={toggleSidebar}></div>
-            <div className="relative z-10">
+          <>
+            {/* Backdrop */}
+            <div className="md:hidden fixed inset-0 z-40 bg-black bg-opacity-50" onClick={toggleSidebar}></div>
+            {/* Sidebar */}
+            <div className="md:hidden fixed top-0 left-0 z-50 h-full">
               <Sidebar expert={expert} onLogout={handleLogout} />
             </div>
-          </div>
+          </>
         )}
 
         <div className="flex flex-col flex-1 overflow-hidden">
