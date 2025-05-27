@@ -74,13 +74,7 @@ export default function Header({ expert, onLogout }: HeaderProps) {
         </nav>
 
         {/* User Profile & Actions */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center">
-            <div className="text-right">
-              <p className="text-xs text-gray-500">{expert.role}</p>
-            </div>
-          </div>
-          
+        <div className="flex items-center">
           <button
             onClick={onLogout}
             className="flex items-center px-3 py-2 text-sm font-medium text-[#2D3436] hover:bg-[#F5F6FA] rounded-md transition-colors"
