@@ -29,7 +29,12 @@ export default function Header({ expert, onLogout }: HeaderProps) {
                 ? "text-white bg-[#0984E3]" 
                 : "text-[#2D3436] hover:bg-[#F5F6FA]"
             }`}>
-              <i className="fas fa-user-circle mr-2"></i>
+              <Avatar className="h-5 w-5 mr-2">
+                <AvatarImage src={expert.profileImage} alt={expert.name} />
+                <AvatarFallback className="bg-[#0984E3] text-white text-xs">
+                  {expert.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               My Profile
             </div>
           </Link>
