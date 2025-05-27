@@ -179,7 +179,7 @@ describe('Web Scraping and RAG API Endpoints', () => {
     });
   });
 
-  describe('Content Validation', () => {
+  describe('CRITICAL: Content Authenticity Validation', () => {
     test('should validate content structure in responses', async () => {
       const response = await request(app)
         .get('/api/scraped-content')
@@ -192,6 +192,43 @@ describe('Web Scraping and RAG API Endpoints', () => {
         expect(content).toHaveProperty('title');
         expect(content).toHaveProperty('content');
         expect(content).toHaveProperty('status');
+        
+        // CRITICAL: Validate URL authenticity
+        expect(content.url).not.toMatch(/^https?:\/\/example\.com/);
+        expect(content.url).not.toMatch(/placeholder/i);
+        expect(content.url).not.toMatch(/fake/i);
+      }
+    });
+
+    test('CRITICAL: should never generate fake URLs in content generation', async () => {
+      // Test content generation endpoint for fake URLs
+      const response = await request(app)
+        .post('/api/generate-content-ideas')
+        .send({
+          topicId: 1,
+          platform: 'linkedin',
+          expertId: 1
+        });
+
+      if (response.status === 201) {
+        for (const idea of response.body) {
+          if (idea.sources) {
+            for (const source of idea.sources) {
+              // CRITICAL: Reject all fake URL patterns
+              expect(source).not.toMatch(/^https?:\/\/hbr\.org\/\d{4}\/\d{2}\//);
+              expect(source).not.toMatch(/^https?:\/\/www\.mckinsey\.com\/business-functions/);
+              expect(source).not.toMatch(/^https?:\/\/sloanreview\.mit\.edu\/article\//);
+              expect(source).not.toMatch(/^https?:\/\/www\.fastcompany\.com\/\d+/);
+              expect(source).not.toMatch(/^https?:\/\/example\.com/);
+              expect(source).not.toMatch(/placeholder/i);
+              
+              // Must be authentic or explicit no-sources message
+              if (!source.includes('No sources available') && !source.includes('manual research required')) {
+                expect(source).toMatch(/^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\//);
+              }
+            }
+          }
+        }
       }
     });
 
