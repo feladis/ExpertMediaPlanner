@@ -122,7 +122,7 @@ export class DatabaseStorage implements IStorage {
     };
 
     const [newProfile] = await db.insert(expertProfiles)
-      .values([formattedProfile])
+      .values(formattedProfile)
       .returning();
     
     // Mark the expert's profile as complete
@@ -164,7 +164,7 @@ export class DatabaseStorage implements IStorage {
     };
     
     const [newTopic] = await db.insert(topics)
-      .values([fullTopic])
+      .values(fullTopic)
       .returning();
     return newTopic;
   }
@@ -223,7 +223,7 @@ export class DatabaseStorage implements IStorage {
 
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
     const [newIdea] = await db.insert(contentIdeas)
-      .values([idea])
+      .values(idea)
       .returning();
     return newIdea;
   }
@@ -286,7 +286,7 @@ export class DatabaseStorage implements IStorage {
 
   async createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent> {
     const [newContent] = await db.insert(scrapedContent)
-      .values([content])
+      .values(content)
       .returning();
     return newContent;
   }
@@ -328,7 +328,7 @@ export class DatabaseStorage implements IStorage {
 
   async createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance> {
     const [newRelevance] = await db.insert(expertContentRelevance)
-      .values([relevance])
+      .values(relevance)
       .returning();
     return newRelevance;
   }

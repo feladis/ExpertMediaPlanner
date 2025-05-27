@@ -395,7 +395,7 @@ export function calculateRelevanceScore(
   // Keyword matching (40% of score)
   let keywordMatches = 0;
   expertKeywords.forEach(keyword => {
-    if (keyword && contentText.includes(keyword)) {
+    if (keyword && typeof keyword === 'string' && contentText.includes(keyword)) {
       keywordMatches++;
       // Bonus for title matches
       if (scrapedContent.title.toLowerCase().includes(keyword)) {
