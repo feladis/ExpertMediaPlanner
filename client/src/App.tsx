@@ -146,24 +146,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="h-screen flex bg-[#F5F6FA]">
-        {/* Desktop sidebar - always visible on large screens */}
-        <div className="hidden md:block">
+        {/* Sidebar with responsive behavior */}
+        <div className={`
+          transition-transform duration-300 ease-in-out
+          ${showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          md:relative md:translate-x-0
+          fixed md:static
+          z-30 md:z-auto
+          h-full
+        `}>
           {expert && (
             <Sidebar expert={expert} onLogout={handleLogout} />
           )}
         </div>
-        
-        {/* Mobile sidebar - overlay when toggled */}
-        {expert && showSidebar && (
-          <>
-            {/* Backdrop */}
-            <div className="md:hidden fixed inset-0 z-40 bg-black bg-opacity-50" onClick={toggleSidebar}></div>
-            {/* Sidebar */}
-            <div className="md:hidden fixed top-0 left-0 z-50 h-full">
-              <Sidebar expert={expert} onLogout={handleLogout} />
-            </div>
-          </>
-        )}
 
         <div className="flex flex-col flex-1 overflow-hidden">
           {expert && (
