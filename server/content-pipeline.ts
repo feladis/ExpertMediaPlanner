@@ -50,7 +50,7 @@ export class ContentPipeline {
       throw new Error('Expert profile not found');
     }
 
-    // Step 3: Generate content ideas using scraped data
+    // Step 3: Generate content ideas using scraped data with full traceability
     const contentIdeas = await generateContentIdeas({
       topic: topic.title,
       description: topic.description || '',
@@ -58,7 +58,13 @@ export class ContentPipeline {
       viewpoints: viewpoints.map(v => v.title),
       expertiseKeywords: profile.expertiseKeywords || [],
       voiceTone: profile.voiceTone || [],
-      expertId: params.expertId
+      expertId: params.expertId,
+      scrapedContent: scrapedData.map(content => ({
+        title: content.title,
+        url: content.url,
+        summary: content.summary || undefined,
+        domain: content.domain
+      }))
     });
 
     // Step 4: Validate and save content ideas with source references
@@ -84,14 +90,22 @@ export class ContentPipeline {
     }
 
     return {
-      ideas: savedIdeas,
-      sourcesUsed: [...new Set(sourcesUsed)], // Remove duplicates
+      ideas: savedIdeas.map(idea => ({
+        id: idea.id,
+        title: idea.title,
+        description: idea.description,
+        format: idea.format,
+        keyPoints: idea.keyPoints || [],
+        sources: idea.sources || [],
+        platform: idea.platform
+      })),
+      sourcesUsed: Array.from(new Set(sourcesUsed)), // Remove duplicates
       timestamp: new Date()
     };
   }
 
   /**
-   * Scrape fresh content from expert's trusted sources
+   * Scrape fresh content from expert's trusted sources with freshness check
    */
   private async scrapeFreshContent(expertId: number) {
     const targets = await storage.getActiveScrapingTargets();
@@ -99,32 +113,36 @@ export class ContentPipeline {
 
     for (const target of targets) {
       try {
+        // Check if we have fresh content (within 24 hours)
+        const existingFresh = await storage.getFreshScrapedContent(target.baseUrl, 24);
+        
+        if (existingFresh) {
+          console.log(`Using fresh content from ${target.baseUrl} (${existingFresh.createdAt})`);
+          results.push(existingFresh);
+          continue;
+        }
+
+        // Scrape new content if not fresh enough
+        console.log(`Scraping fresh content from ${target.baseUrl}`);
         const result = await this.scraper.scrapeUrl(target.baseUrl);
         
         if (result.success && result.content) {
-          // Check if content already exists
-          const existing = await storage.getScrapedContentByUrl(target.baseUrl);
+          // Save new content
+          const savedContent = await storage.createScrapedContent(result.content);
           
-          if (!existing) {
-            // Save new content
-            const savedContent = await storage.createScrapedContent(result.content);
-            
-            // Calculate relevance for this expert
-            const expertProfile = await storage.getExpertProfile(expertId);
-            if (expertProfile) {
-              const relevanceScore = calculateRelevanceScore(savedContent, expertProfile);
-              await storage.createExpertContentRelevance({
-                expertId,
-                scrapedContentId: savedContent.id!,
-                relevanceScore,
-                matchedKeywords: []
-              });
-            }
-            
-            results.push(savedContent);
-          } else {
-            results.push(existing);
+          // Calculate relevance for this expert
+          const expertProfile = await storage.getExpertProfile(expertId);
+          if (expertProfile) {
+            const relevanceScore = calculateRelevanceScore(savedContent, expertProfile);
+            await storage.createExpertContentRelevance({
+              expertId,
+              scrapedContentId: savedContent.id!,
+              relevanceScore,
+              matchedKeywords: []
+            });
           }
+          
+          results.push(savedContent);
         }
       } catch (error) {
         console.error(`Failed to scrape ${target.baseUrl}:`, error);

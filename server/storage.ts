@@ -54,6 +54,7 @@ export interface IStorage {
   updateScrapedContent(id: number, data: Partial<ScrapedContent>): Promise<ScrapedContent | undefined>;
   deleteScrapedContent(id: number): Promise<boolean>;
   getRecentScrapedContent(days?: number): Promise<ScrapedContent[]>;
+  getFreshScrapedContent(url: string, maxAgeHours: number): Promise<ScrapedContent | undefined>;
   
   // Expert Content Relevance methods
   getExpertContentRelevance(expertId: number, limit?: number): Promise<ExpertContentRelevance[]>;
