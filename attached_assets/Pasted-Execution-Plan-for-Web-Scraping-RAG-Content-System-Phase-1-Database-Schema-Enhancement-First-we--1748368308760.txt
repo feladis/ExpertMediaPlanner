@@ -1,0 +1,61 @@
+Execution Plan for Web Scraping + RAG Content System
+Phase 1: Database Schema Enhancement
+First, we need to add tables for scraped content storage:
+
+shared/schema.ts
+Add scraped content tables, Add schema types for scraped content
+Phase 2: Web Scraping Service
+Create a robust scraping service with proper error handling and rate limiting:
+
+server/scraping.ts
+Create web scraping service
+Phase 3: Enhanced Storage Methods
+Add storage methods for scraped content:
+
+server/storage.ts
+Add scraped content storage methods, Add scraped content interface methods, Implement scraped content storage methods, Add missing imports for database operations
+Phase 4: Enhanced Anthropic Service with RAG
+Modify the Anthropic service to use scraped content as context:
+
+server/anthropic.ts
+Add RAG capability to content generation
+Phase 5: API Routes for Scraping
+Add routes to trigger and manage scraping:
+
+server/routes.ts
+Add scraping API routes
+Phase 6: Missing Database Imports
+Fix missing imports in storage.ts:
+
+Phase 7: Database Migration
+Create migration for new tables:
+
+npx drizzle-kit generate
+Critical Analysis & Safety Considerations
+✅ Safety Measures Implemented:
+Rate Limiting: 2-second delays between requests to respect server resources
+Timeout Protection: 30-second timeout to prevent hanging requests
+Content Size Limits: Maximum 50KB per scraped content to prevent storage issues
+Duplicate Prevention: Content hashing to avoid storing duplicate articles
+Error Handling: Comprehensive error handling with proper logging
+Recent Content Filter: Only processes content from last 7 days
+Relevance Scoring: Filters content based on expert's keywords
+✅ Proper RAG Implementation:
+Context Retrieval: Gets recent, relevant content based on expert's expertise
+Relevance Ranking: Uses keyword matching and scoring algorithm
+Context Integration: Passes scraped content as context to Anthropic API
+Content Freshness: Filters for content published/scraped within 7 days
+Limited Context: Uses only top 5 most relevant articles to avoid token limits
+✅ No Harm to Existing Features:
+Backward Compatibility: All existing APIs remain unchanged
+Optional Integration: RAG context is only added when expertId is provided
+Incremental Enhancement: New tables don't affect existing schema
+Background Processing: Scraping runs asynchronously to avoid blocking UI
+Graceful Degradation: If no scraped content exists, system works as before
+⚠️ Production Considerations:
+Legal Compliance: Ensure you have rights to scrape target websites
+robots.txt Respect: Consider checking robots.txt before scraping
+Rate Limiting: Current 2-second delay may need adjustment per site
+Content Licensing: Be aware of content licensing and fair use policies
+Resource Monitoring: Monitor database growth and implement cleanup policies
+This implementation provides a robust, safe, and properly architected RAG system that enhances content generation without breaking existing functionality.
