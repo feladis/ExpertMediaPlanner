@@ -131,9 +131,7 @@ function App() {
     setExpert(updatedExpert);
   };
 
-  const toggleSidebar = () => {
-    setShowSidebar(!showSidebar);
-  };
+
 
   // If no expert exists and not at login route, redirect to login
   // Special case for content editor which should be accessible even if coming from direct link
