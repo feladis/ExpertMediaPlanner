@@ -232,12 +232,15 @@ export async function generateContentIdeas(params: ContentIdeaGenerationParams):
 3. Consider the expert's keywords and voice tone
 4. Include the provided viewpoints when applicable
 
+STRICT SOURCE REQUIREMENTS:
 ${realSources.length > 0 ? 
-  `CRITICAL: You MUST ONLY use these real URLs as sources (DO NOT create fake URLs):
+  `You have access to these REAL URLs ONLY:
 ${realSources.slice(0, 8).join('\n')}
 
-Choose the most relevant URLs from this list for each content idea.` :
-  `CRITICAL: No real sources are available. Use "No sources available - manual research required" as sources.`}
+MANDATORY: You MUST ONLY select from these exact URLs. DO NOT create any new URLs. DO NOT modify these URLs. If none of these URLs seem relevant, use "No relevant sources available".` :
+  `NO SOURCES AVAILABLE: Since no scraped content exists, you MUST use exactly this text for all sources: "No sources available - manual research required"`}
+
+FORBIDDEN: Never create URLs like hbr.org/..., mit.edu/..., mckinsey.com/... or any other fake URLs.
 
 Your response MUST be formatted as a valid JSON object with this structure:
 {
@@ -247,9 +250,8 @@ Your response MUST be formatted as a valid JSON object with this structure:
       "description": "Brief description of the idea",
       "format": "Format type (post, article, etc.)",
       "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
-      "sources": ["ONLY use URLs from the provided list above OR 'No sources available - manual research required'"]
-    },
-    // more ideas...
+      "sources": ["Use ONLY exact URLs from above list OR 'No sources available - manual research required'"]
+    }
   ]
 }`;
 
