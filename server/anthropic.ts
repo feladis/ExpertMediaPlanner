@@ -111,17 +111,35 @@ Your response MUST be formatted as a valid JSON object with this structure:
         }
       }
       
-      // Try to fix truncated JSON by adding missing closing brackets
+      // Try to fix truncated JSON
       let fixedContent = cleanContent;
+      
+      // Fix unterminated strings by finding the last quote and completing it
+      if (fixedContent.includes('"') && !fixedContent.match(/"[^"]*$/)) {
+        // Find the last incomplete string and close it
+        const lastQuoteIndex = fixedContent.lastIndexOf('"');
+        const afterLastQuote = fixedContent.substring(lastQuoteIndex + 1);
+        
+        // If there's content after the last quote without a closing quote, truncate it
+        if (afterLastQuote && !afterLastQuote.includes('"')) {
+          fixedContent = fixedContent.substring(0, lastQuoteIndex + 1) + '"';
+        }
+      }
       
       // Count open and close brackets to detect truncation
       const openBrackets = (fixedContent.match(/\{/g) || []).length;
       const closeBrackets = (fixedContent.match(/\}/g) || []).length;
+      const openArrays = (fixedContent.match(/\[/g) || []).length;
+      const closeArrays = (fixedContent.match(/\]/g) || []).length;
       
+      // Add missing closing brackets and arrays
       if (openBrackets > closeBrackets) {
-        // Add missing closing brackets
         const missing = openBrackets - closeBrackets;
         fixedContent = fixedContent + '}'.repeat(missing);
+      }
+      if (openArrays > closeArrays) {
+        const missing = openArrays - closeArrays;
+        fixedContent = fixedContent + ']'.repeat(missing);
       }
       
       // Remove any trailing commas that might cause issues

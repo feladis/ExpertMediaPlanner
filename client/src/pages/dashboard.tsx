@@ -110,7 +110,7 @@ export default function Dashboard({ expert, onLogin, authLoading }: DashboardPro
         platforms: profile.platforms || [],
         targetAudience: profile.targetAudience,
         contentGoals: profile.contentGoals || [],
-        count: 15
+        count: 8
       });
       return response.json();
     },
