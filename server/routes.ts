@@ -377,14 +377,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Expert profile not found' });
       }
       
-      // Generate content ideas using Anthropic
+      // Generate content ideas using Anthropic with RAG system
       const contentIdeas = await generateContentIdeas({
         topic: topic.title,
         description: topic.description || '',
         platform,
         viewpoints: viewpoints.map(v => v.title),
         expertiseKeywords: profile.expertiseKeywords || [],
-        voiceTone: profile.voiceTone || []
+        voiceTone: profile.voiceTone || [],
+        expertId: profile.expertId
       });
       
       // Save content ideas to storage
