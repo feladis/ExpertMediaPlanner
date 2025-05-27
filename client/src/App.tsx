@@ -145,20 +145,30 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="h-screen flex bg-[#F5F6FA]">
-        {/* Sidebar with responsive behavior */}
-        <div className={`
-          transition-transform duration-300 ease-in-out
-          ${showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          md:relative md:translate-x-0
-          fixed md:static
-          z-30 md:z-auto
+      <div className="h-screen flex bg-[#F5F6FA] relative">
+        {/* Mobile backdrop */}
+        {showSidebar && (
+          <div 
+            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={toggleSidebar}
+          />
+        )}
+        
+        {/* Sidebar */}
+        <aside className={`
+          ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0
+          transform transition-transform duration-300 ease-in-out
+          fixed md:relative
+          top-0 left-0
+          z-50 md:z-auto
           h-full
+          w-64
         `}>
           {expert && (
             <Sidebar expert={expert} onLogout={handleLogout} />
           )}
-        </div>
+        </aside>
 
         <div className="flex flex-col flex-1 overflow-hidden">
           {expert && (
