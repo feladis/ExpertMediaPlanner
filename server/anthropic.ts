@@ -168,6 +168,7 @@ interface ContentIdeaGenerationParams {
   viewpoints: string[];
   expertiseKeywords: string[];
   voiceTone: string[];
+  expertId?: number;
 }
 
 interface ContentIdeaResult {
@@ -180,18 +181,63 @@ interface ContentIdeaResult {
 
 export async function generateContentIdeas(params: ContentIdeaGenerationParams): Promise<ContentIdeaResult[]> {
   try {
+    // Step 1: Get real scraped content and information sources
+    let realSources: string[] = [];
+    let contextSection = '';
+    
+    if (params.expertId) {
+      try {
+        const expertProfile = await storage.getExpertProfile(params.expertId);
+        if (expertProfile) {
+          // Get relevant scraped content that matches expert's expertise
+          const relevantContent = await storage.getRelevantContentForExpert(expertProfile.expertId, 5);
+          
+          if (relevantContent.length > 0) {
+            contextSection = `\n\nREAL INDUSTRY CONTENT TO REFERENCE:\n${relevantContent.map(content => 
+              `- "${content.title}" from ${content.domain} (${content.url})
+                Summary: ${content.summary || 'No summary available'}
+                Keywords: ${content.keywords?.join(', ') || 'No keywords'}`
+            ).join('\n\n')}\n`;
+            
+            // Extract real URLs for sources
+            realSources = relevantContent.map(content => content.url);
+          }
+          
+          // Add information sources from expert profile
+          if (expertProfile.informationSources && expertProfile.informationSources.length > 0) {
+            const profileSources = expertProfile.informationSources
+              .filter(source => source.url)
+              .map(source => source.url);
+            
+            realSources.push(...profileSources);
+            
+            const infoSourcesText = expertProfile.informationSources
+              .filter(source => source.url)
+              .map(source => `- ${source.name}: ${source.url}`)
+              .join('\n');
+            
+            if (infoSourcesText) {
+              contextSection += `\n\nEXPERT'S TRUSTED SOURCES:\n${infoSourcesText}\n`;
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Error retrieving expert content:', error.message);
+      }
+    }
+
     const systemPrompt = `You are a strategic content planning assistant for field experts. Generate 2 content ideas for a specific social media platform based on a topic. Each content idea should:
 1. Be optimized for the platform: ${params.platform}
 2. Be relevant to the topic and its description
 3. Consider the expert's keywords and voice tone
 4. Include the provided viewpoints when applicable
 
-For each idea, include:
-- A catchy title that works for the platform
-- A brief description
-- Recommended format (post, article, thread, etc.)
-- 3-5 key points to include
-- 2-3 actual URLs as reference sources (real websites like harvard.edu, mit.edu, forbes.com, hbr.org, etc.)
+${realSources.length > 0 ? 
+  `CRITICAL: You MUST ONLY use these real URLs as sources (DO NOT create fake URLs):
+${realSources.slice(0, 8).join('\n')}
+
+Choose the most relevant URLs from this list for each content idea.` :
+  `CRITICAL: No real sources are available. Use "No sources available - manual research required" as sources.`}
 
 Your response MUST be formatted as a valid JSON object with this structure:
 {
@@ -201,7 +247,7 @@ Your response MUST be formatted as a valid JSON object with this structure:
       "description": "Brief description of the idea",
       "format": "Format type (post, article, etc.)",
       "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
-      "sources": ["https://example.com/article1", "https://example.com/article2"]
+      "sources": ["ONLY use URLs from the provided list above OR 'No sources available - manual research required'"]
     },
     // more ideas...
   ]
@@ -213,8 +259,7 @@ Your response MUST be formatted as a valid JSON object with this structure:
 - Viewpoints to consider: ${params.viewpoints.join(', ')}
 - My expertise keywords: ${params.expertiseKeywords.join(', ')}
 - My voice tone: ${params.voiceTone.join(', ')}
-
-IMPORTANT: For sources, provide actual clickable URLs (like https://hbr.org/..., https://www.mckinsey.com/..., https://sloanreview.mit.edu/...) not just titles or descriptions.`;
+${contextSection}`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-7-sonnet-20250219',
