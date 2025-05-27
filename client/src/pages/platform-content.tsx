@@ -47,13 +47,13 @@ export default function PlatformContentPage() {
     }
   }, [expertProfile]);
   
-  // Set initial selected topic to "All Topics"
+  // Set initial selected topic to the first topic (so content actually loads)
   useEffect(() => {
-    if (Array.isArray(topics) && topics.length > 0 && selectedTopicId !== null) {
-      // Don't set a specific topic ID - keep it as null for "All Topics"
-      setSelectedTopicId(null);
+    if (Array.isArray(topics) && topics.length > 0 && selectedTopicId === null) {
+      // Set to first topic so we actually fetch content ideas
+      setSelectedTopicId(topics[0].id);
     }
-  }, [topics]);
+  }, [topics, selectedTopicId]);
   
   // Fetch content ideas for selected topic (or all topics) and platform
   const { data: contentIdeas = [], isLoading } = useQuery<ContentIdea[]>({
