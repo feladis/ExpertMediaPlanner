@@ -400,10 +400,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (err: any) {
       console.error('Content generation error:', err);
-      if (err.message && err.message.includes('No scraped content available')) {
+      if (err.message && (
+        err.message.includes('No scraped content available') ||
+        err.message.includes('No active scraping sources found') ||
+        err.message.includes('Please verify your information sources')
+      )) {
         return res.status(400).json({ 
           message: err.message,
-          suggestion: 'Please ensure your expert profile has valid information sources configured.'
+          suggestion: 'Please ensure your expert profile has valid information sources configured and they are accessible.',
+          actions: [
+            'Verify URLs in your expert profile are working',
+            'Check if sources allow web scraping',
+            'Try adding different information sources'
+          ]
         });
       }
       handleError(err, res);
@@ -516,6 +525,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const content = await storage.getScrapedContent(limit, offset);
       res.json(content);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // Validate information sources
+  app.post('/api/validate-sources', async (req: Request, res: Response) => {
+    try {
+      const { sources } = req.body;
+      
+      if (!sources || !Array.isArray(sources)) {
+        return res.status(400).json({ message: 'Sources array is required' });
+      }
+
+      const scraper = new WebScraper();
+      const validationResults = [];
+
+      for (const source of sources) {
+        const result = await scraper.scrapeUrl(source.url);
+        validationResults.push({
+          url: source.url,
+          name: source.name,
+          valid: result.success,
+          error: result.error,
+          contentPreview: result.content ? result.content.title : null
+        });
+      }
+
+      res.json({ results: validationResults });
     } catch (err) {
       handleError(err, res);
     }

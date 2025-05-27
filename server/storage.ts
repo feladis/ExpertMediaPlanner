@@ -399,6 +399,53 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(scrapingTargets);
   }
 
+  async createScrapingTarget(target: InsertScrapingTarget): Promise<ScrapingTarget> {
+    const [newTarget] = await db.insert(scrapingTargets)
+      .values(target)
+      .returning();
+    return newTarget;
+  }
+
+  async updateScrapingTarget(id: number, updates: Partial<InsertScrapingTarget>): Promise<ScrapingTarget> {
+    const [updated] = await db.update(scrapingTargets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(scrapingTargets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getScrapedContentByUrl(url: string): Promise<ScrapedContent | null> {
+    const [content] = await db.select()
+      .from(scrapedContent)
+      .where(eq(scrapedContent.url, url))
+      .limit(1);
+    return content || null;
+  }
+
+  async updateScrapedContent(id: number, updates: Partial<InsertScrapedContent>): Promise<ScrapedContent> {
+    const [updated] = await db.update(scrapedContent)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(scrapedContent.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getTopic(id: number): Promise<Topic | null> {
+    const [topic] = await db.select()
+      .from(topics)
+      .where(eq(topics.id, id))
+      .limit(1);
+    return topic || null;
+  }
+
+  async getScrapedContentById(id: number): Promise<ScrapedContent | null> {
+    const [content] = await db.select()
+      .from(scrapedContent)
+      .where(eq(scrapedContent.id, id))
+      .limit(1);
+    return content || null;
+  }
+
   async getActiveScrapingTargets(): Promise<ScrapingTarget[]> {
     return await db.select()
       .from(scrapingTargets)
