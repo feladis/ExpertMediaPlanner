@@ -352,15 +352,73 @@ export default function ContentEditorPage() {
               <i className="fas fa-book-open text-blue-500 mr-2"></i>
               Research Sources
             </h3>
-            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+            <div className="space-y-2">
               {idea?.sources && idea.sources.length > 0 ? (
-                idea.sources.map((source, idx) => (
-                  <li key={idx} className="hover:bg-gray-50 p-1 rounded-sm transition-colors">{source}</li>
-                ))
+                idea.sources.map((source, idx) => {
+                  // Check if the source looks like a URL
+                  const isUrl = source.startsWith('http://') || source.startsWith('https://') || source.startsWith('www.');
+                  
+                  if (isUrl) {
+                    // Make sure URL has protocol
+                    const cleanUrl = source.startsWith('www.') ? `https://${source}` : source;
+                    
+                    return (
+                      <div key={idx} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-sm transition-colors group">
+                        <i className="fas fa-external-link-alt text-[#0984E3] text-xs flex-shrink-0"></i>
+                        <a 
+                          href={cleanUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-[#0984E3] hover:text-blue-700 hover:underline flex-1 break-all"
+                        >
+                          {source}
+                        </a>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
+                          onClick={() => {
+                            navigator.clipboard.writeText(cleanUrl);
+                            toast({
+                              title: "Link copied!",
+                              description: "The source link has been copied to your clipboard.",
+                              duration: 2000
+                            });
+                          }}
+                        >
+                          <i className="fas fa-copy text-xs"></i>
+                        </Button>
+                      </div>
+                    );
+                  } else {
+                    // Regular text source
+                    return (
+                      <div key={idx} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-sm transition-colors group">
+                        <i className="fas fa-book text-gray-400 text-xs flex-shrink-0"></i>
+                        <span className="text-sm text-gray-600 flex-1">{source}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
+                          onClick={() => {
+                            navigator.clipboard.writeText(source);
+                            toast({
+                              title: "Text copied!",
+                              description: "The source text has been copied to your clipboard.",
+                              duration: 2000
+                            });
+                          }}
+                        >
+                          <i className="fas fa-copy text-xs"></i>
+                        </Button>
+                      </div>
+                    );
+                  }
+                })
               ) : (
-                <li className="text-gray-400 italic">No sources available</li>
+                <div className="text-gray-400 italic text-sm p-2">No sources available</div>
               )}
-            </ul>
+            </div>
           </CardContent>
         </Card>
       </div>
