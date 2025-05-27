@@ -39,6 +39,11 @@ export class WebScraper {
         return { success: false, error: 'Invalid URL provided' };
       }
 
+      // CRITICAL: Block suspicious URLs that could be fake
+      if (this.isSuspiciousUrl(url)) {
+        return { success: false, error: 'Suspicious URL pattern detected - refusing to scrape' };
+      }
+
       // Fetch content with timeout
       const response = await this.fetchWithTimeout(url);
       
@@ -337,6 +342,25 @@ export class WebScraper {
     } catch {
       return false;
     }
+  }
+
+  private isSuspiciousUrl(url: string): boolean {
+    // CRITICAL: Block known fake URL patterns that AI commonly generates
+    const suspiciousPatterns = [
+      /^https?:\/\/hbr\.org\/\d{4}\/\d{2}\//,
+      /^https?:\/\/www\.mckinsey\.com\/business-functions/,
+      /^https?:\/\/sloanreview\.mit\.edu\/article\//,
+      /^https?:\/\/www\.fastcompany\.com\/\d+/,
+      /^https?:\/\/example\.com/,
+      /^https?:\/\/.*\.example/,
+      /placeholder/i,
+      /fake/i,
+      /test\.com/,
+      /sample\.com/,
+      /dummy/i
+    ];
+
+    return suspiciousPatterns.some(pattern => pattern.test(url));
   }
 
   private isStopWord(word: string): boolean {

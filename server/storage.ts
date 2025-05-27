@@ -223,10 +223,7 @@ export class DatabaseStorage implements IStorage {
 
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
     const [newIdea] = await db.insert(contentIdeas)
-      .values({
-        ...idea,
-        saved: false
-      })
+      .values(idea)
       .returning();
     return newIdea;
   }
