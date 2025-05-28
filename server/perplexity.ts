@@ -1,4 +1,7 @@
 import { ExpertProfile } from '@shared/schema';
+import { advancedSourceValidator } from './source-validator';
+import { perplexityCache } from './intelligent-cache';
+import { robustFallbackSystem } from './fallback-system';
 
 // Advanced Perplexity configuration based on the document recommendations
 interface PerplexityConfig {
@@ -470,8 +473,43 @@ export class PerplexityService {
     this.modelSelector = new IntelligentModelSelector();
   }
 
-  // PHASE 2: Enhanced topic generation with intelligent model selection
+  // PHASE 3: Enterprise-grade topic generation with quality & reliability
   async generateTopicsWithIntelligentSearch(expertProfile: ExpertProfile): Promise<any> {
+    const cacheKey = `topics_${expertProfile.primaryExpertise}_${Date.now() - Date.now() % (2 * 60 * 60 * 1000)}`; // 2-hour cache windows
+    
+    // PHASE 3: Check intelligent cache first
+    const cachedResult = await perplexityCache.get(cacheKey, expertProfile, 'trending_topics');
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    // PHASE 3: Use robust fallback system
+    return robustFallbackSystem.executeWithFallback(
+      () => this.performTopicGeneration(expertProfile),
+      () => this.generateAnthropicFallback(expertProfile, 'topics'),
+      {
+        expertProfile,
+        contentType: 'trending_topics',
+        operationType: 'topics'
+      }
+    ).then(async (fallbackResult) => {
+      // Cache successful results
+      if (fallbackResult.data) {
+        await perplexityCache.set(
+          cacheKey,
+          fallbackResult.data,
+          expertProfile,
+          'trending_topics',
+          [],
+          fallbackResult.reliability
+        );
+      }
+      return fallbackResult.data;
+    });
+  }
+
+  // PHASE 3: Core topic generation logic
+  private async performTopicGeneration(expertProfile: ExpertProfile): Promise<any> {
     const searchContext = this.searchBuilder.buildSearchParams(expertProfile, 'trending_topics');
     const contentComplexity = this.modelSelector.determineContentComplexity('trending_topics', expertProfile);
     const optimalModel = this.modelSelector.selectOptimalModel('trending_topics', expertProfile, contentComplexity);
@@ -495,10 +533,10 @@ export class PerplexityService {
       frequency_penalty: 0.1
     };
 
-    console.log(`[PERPLEXITY-PHASE2] Expert: ${expertProfile.primaryExpertise}`);
-    console.log(`[PERPLEXITY-PHASE2] Model: ${optimalModel} (${contentComplexity} complexity)`);
-    console.log(`[PERPLEXITY-PHASE2] Domains: ${searchContext.domainFilters.length} filtered sources`);
-    console.log(`[PERPLEXITY-PHASE2] Recency: ${searchContext.recencyFilter}`);
+    console.log(`[PERPLEXITY-PHASE3] Expert: ${expertProfile.primaryExpertise}`);
+    console.log(`[PERPLEXITY-PHASE3] Model: ${optimalModel} (${contentComplexity} complexity)`);
+    console.log(`[PERPLEXITY-PHASE3] Domains: ${searchContext.domainFilters.length} filtered sources`);
+    console.log(`[PERPLEXITY-PHASE3] Recency: ${searchContext.recencyFilter}`);
 
     return this.rateLimiter.executeWithRetry(async () => {
       const response = await fetch(this.baseUrl, {
@@ -516,15 +554,67 @@ export class PerplexityService {
 
       const data: PerplexityResponse = await response.json();
       
-      console.log(`[PERPLEXITY-PHASE2] Success! Model: ${optimalModel}, Tokens: ${data.usage.total_tokens}`);
-      console.log(`[PERPLEXITY-PHASE2] Citations: ${data.citations?.length || 0} authoritative sources`);
+      // PHASE 3: Validate sources for quality assurance
+      if (data.citations && data.citations.length > 0) {
+        const validationResults = await advancedSourceValidator.validateBatch(data.citations);
+        const highQualitySources = advancedSourceValidator.getHighQualitySources(validationResults);
+        const reliabilitySummary = advancedSourceValidator.getReliabilitySummary(validationResults);
+        
+        console.log(`[PERPLEXITY-PHASE3] Source validation: ${reliabilitySummary.highQualitySources}/${reliabilitySummary.totalSources} high-quality, avg score: ${reliabilitySummary.averageScore}`);
+        
+        // Enhance response with validated sources
+        data.validatedCitations = highQualitySources;
+        data.sourceQuality = reliabilitySummary;
+      }
+      
+      console.log(`[PERPLEXITY-PHASE3] Success! Model: ${optimalModel}, Tokens: ${data.usage.total_tokens}`);
+      console.log(`[PERPLEXITY-PHASE3] Quality-validated sources: ${data.validatedCitations?.length || 0} citations`);
 
       return data;
     });
   }
 
-  // PHASE 2: Enhanced content ideas generation with context-aware optimization
+  // PHASE 3: Enterprise-grade content ideas with quality assurance
   async generateContentIdeasWithIntelligentSearch(
+    topic: string, 
+    expertProfile: ExpertProfile, 
+    platform: string
+  ): Promise<any> {
+    const cacheKey = `content_${topic}_${platform}_${expertProfile.primaryExpertise}`;
+    
+    // PHASE 3: Check intelligent cache first
+    const cachedResult = await perplexityCache.get(cacheKey, expertProfile, 'content_ideas');
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    // PHASE 3: Use robust fallback system
+    return robustFallbackSystem.executeWithFallback(
+      () => this.performContentGeneration(topic, expertProfile, platform),
+      () => this.generateAnthropicFallback(expertProfile, 'content_ideas', { topic, platform }),
+      {
+        expertProfile,
+        contentType: 'content_ideas',
+        operationType: 'content_ideas'
+      }
+    ).then(async (fallbackResult) => {
+      // Cache successful results
+      if (fallbackResult.data) {
+        await perplexityCache.set(
+          cacheKey,
+          fallbackResult.data,
+          expertProfile,
+          'content_ideas',
+          fallbackResult.data.validatedCitations || [],
+          fallbackResult.reliability
+        );
+      }
+      return fallbackResult.data;
+    });
+  }
+
+  // PHASE 3: Core content generation logic
+  private async performContentGeneration(
     topic: string, 
     expertProfile: ExpertProfile, 
     platform: string
@@ -552,7 +642,7 @@ export class PerplexityService {
       frequency_penalty: 0.2
     };
 
-    console.log(`[PERPLEXITY-PHASE2] Content Generation Context:`);
+    console.log(`[PERPLEXITY-PHASE3] Content Generation Context:`);
     console.log(`  Topic: ${topic}`);
     console.log(`  Platform: ${platform}`);
     console.log(`  Expert: ${expertProfile.primaryExpertise}`);
@@ -576,11 +666,60 @@ export class PerplexityService {
 
       const data: PerplexityResponse = await response.json();
       
-      console.log(`[PERPLEXITY-PHASE2] Content Success! Model: ${optimalModel}, Tokens: ${data.usage.total_tokens}`);
-      console.log(`[PERPLEXITY-PHASE2] Expert-filtered sources: ${data.citations?.length || 0} citations`);
+      // PHASE 3: Advanced source validation and quality scoring
+      if (data.citations && data.citations.length > 0) {
+        const validationResults = await advancedSourceValidator.validateBatch(data.citations);
+        const highQualitySources = advancedSourceValidator.getHighQualitySources(validationResults);
+        const reliabilitySummary = advancedSourceValidator.getReliabilitySummary(validationResults);
+        
+        console.log(`[PERPLEXITY-PHASE3] Source validation: ${reliabilitySummary.highQualitySources}/${reliabilitySummary.totalSources} high-quality sources`);
+        console.log(`[PERPLEXITY-PHASE3] Top domains: ${reliabilitySummary.topDomains.join(', ')}`);
+        
+        // Enhance response with validated sources and quality metrics
+        data.validatedCitations = highQualitySources;
+        data.sourceQuality = reliabilitySummary;
+        data.qualityScore = reliabilitySummary.averageScore;
+      }
+      
+      console.log(`[PERPLEXITY-PHASE3] Content Success! Model: ${optimalModel}, Tokens: ${data.usage.total_tokens}`);
+      console.log(`[PERPLEXITY-PHASE3] Quality-validated sources: ${data.validatedCitations?.length || 0} citations`);
 
       return data;
     });
+  }
+
+  // PHASE 3: Anthropic fallback for both topics and content ideas
+  private async generateAnthropicFallback(
+    expertProfile: ExpertProfile, 
+    type: 'topics' | 'content_ideas',
+    context?: { topic?: string; platform?: string }
+  ): Promise<any> {
+    console.log(`[PERPLEXITY-PHASE3] Executing Anthropic fallback for ${type}`);
+    
+    if (type === 'topics') {
+      const { generateTopics } = await import('./anthropic');
+      return generateTopics({
+        primaryExpertise: expertProfile.primaryExpertise || '',
+        secondaryExpertise: expertProfile.secondaryExpertise || [],
+        expertiseKeywords: expertProfile.expertiseKeywords || [],
+        voiceTone: expertProfile.voiceTone || [],
+        personalBranding: expertProfile.personalBranding || '',
+        platforms: expertProfile.platforms || [],
+        targetAudience: expertProfile.targetAudience || '',
+        contentGoals: expertProfile.contentGoals || [],
+        count: 3
+      });
+    } else {
+      const { generateContentIdeas } = await import('./anthropic');
+      return generateContentIdeas({
+        topic: context?.topic || 'Industry insights',
+        platform: context?.platform || 'linkedin',
+        viewpoints: ['professional perspective', 'market analysis'],
+        expertiseKeywords: expertProfile.expertiseKeywords || [],
+        voiceTone: expertProfile.voiceTone || [],
+        expertId: 1 // Fallback ID
+      });
+    }
   }
 
   // PHASE 2: Optimization utilities
