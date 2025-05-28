@@ -471,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Content Idea Generation API - SAFE MIGRATION SWITCH
+  // AI Content Idea Generation API - Perplexity Only
   app.post('/api/generate-content-ideas', async (req: Request, res: Response) => {
     try {
       const { topicId, platform, expertId } = req.body;
@@ -480,62 +480,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Topic ID, platform, and expert ID are required' });
       }
 
-      // SWITCH SEGURO: Uses environment variable
-      const useLegacy = process.env.USE_LEGACY_SCRAPING === 'true';
+      console.log('[ROUTES] Using Perplexity pipeline only');
+      
+      const result = await contentPipelineV2.generateContent({
+        topicId,
+        platform,
+        expertId
+      });
 
-      if (useLegacy) {
-        console.log('[ROUTES] Using LEGACY pipeline (scraping)');
-        // Legacy code redirected to new pipeline
-        const result = await contentPipelineV2.generateContent({
-          topicId,
-          platform,
-          expertId
-        });
-
-        return res.status(201).json({
-          ideas: result.ideas,
+      return res.status(201).json({
+        ideas: result.ideas,
+        metadata: {
+          ...result.metadata,
           sourcesUsed: result.sourcesUsed,
-          timestamp: result.timestamp,
-          metadata: {
-            engine: 'legacy-scraping-redirected-to-perplexity'
-          }
-        });
-
-      } else {
-        console.log('[ROUTES] Using NEW pipeline (Perplexity)');
-        // New code
-        const result = await contentPipelineV2.generateContent({
-          topicId,
-          platform,
-          expertId
-        });
-
-        return res.status(201).json({
-          ideas: result.ideas,
-          metadata: {
-            ...result.metadata,
-            sourcesUsed: result.sourcesUsed,
-            timestamp: result.timestamp
-          }
-        });
-      }
+          timestamp: result.timestamp
+        }
+      });
     } catch (err: any) {
       console.error('Content generation error:', err);
-      if (err.message && (
-        err.message.includes('No scraped content available') ||
-        err.message.includes('No active scraping sources found') ||
-        err.message.includes('Please verify your information sources')
-      )) {
-        return res.status(400).json({ 
-          message: err.message,
-          suggestion: 'Please ensure your expert profile has valid information sources configured and they are accessible.',
-          actions: [
-            'Verify URLs in your expert profile are working',
-            'Check if sources allow web scraping',
-            'Try adding different information sources'
-          ]
-        });
-      }
       handleError(err, res);
     }
   });
