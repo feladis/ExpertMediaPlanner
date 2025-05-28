@@ -357,6 +357,23 @@ export class DatabaseStorage implements IStorage {
       .orderBy(scrapedContent.scrapedDate);
   }
 
+  async getFreshScrapedContent(url: string, maxAgeHours: number): Promise<ScrapedContent | undefined> {
+    const cutoffTime = new Date();
+    cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
+    
+    const [content] = await db.select()
+      .from(scrapedContent)
+      .where(and(
+        eq(scrapedContent.url, url),
+        eq(scrapedContent.status, 'active'),
+        gte(scrapedContent.scrapedDate, cutoffTime)
+      ))
+      .orderBy(desc(scrapedContent.scrapedDate))
+      .limit(1);
+    
+    return content;
+  }
+
   // Expert Content Relevance methods
   async getExpertContentRelevance(expertId: number, limit = 20): Promise<ExpertContentRelevance[]> {
     return await db.select()

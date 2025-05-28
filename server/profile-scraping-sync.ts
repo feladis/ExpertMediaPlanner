@@ -36,11 +36,13 @@ export class ProfileScrapingSync {
    */
   private async createOrUpdateScrapingTarget(url: string, sourceName: string): Promise<void> {
     try {
+      const urlObj = new URL(url);
       const newTarget: InsertScrapingTarget = {
+        domain: urlObj.hostname,
         baseUrl: url,
         sourceName: sourceName,
         isActive: true,
-        scrapingFrequency: 'daily',
+        scrapingFrequency: 24, // 24 hours = daily
         lastScrapedAt: null,
         createdAt: new Date(),
         updatedAt: new Date()
