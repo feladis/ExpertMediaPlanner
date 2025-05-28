@@ -16,6 +16,10 @@ import { WebScraper, calculateRelevanceScore } from "./scraping";
 import { contentPipeline } from "./content-pipeline";
 import { perplexityService } from "./perplexity";
 import { registerPerplexityRoutes } from "./perplexity-routes";
+import { registerMonitoringRoutes } from "./monitoring-routes";
+import { monitoringService } from "./monitoring";
+import { costOptimizer } from "./cost-optimizer";
+import { performanceMonitor } from "./performance-monitor";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
