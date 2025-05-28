@@ -30,7 +30,7 @@ export class PerplexityService {
   }
 
   isEnabled(): boolean {
-    return Boolean(this.apiKey && process.env.PERPLEXITY_ENABLED === 'true');
+    return Boolean(this.apiKey);
   }
 
   async search(
