@@ -7,7 +7,7 @@ export class ProfileScrapingSync {
    */
   async syncAllExpertSources(): Promise<void> {
     console.log('Syncing scraping targets for all experts...');
-    
+
     // For now, we'll focus on the current expert (ID 2)
     await this.syncExpertSources(2);
   }
@@ -17,7 +17,7 @@ export class ProfileScrapingSync {
    */
   async syncExpertSources(expertId: number): Promise<void> {
     console.log(`Syncing scraping targets for expert ${expertId}...`);
-    
+
     const profile = await storage.getExpertProfile(expertId);
     if (!profile || !profile.informationSources) {
       console.log('No profile or information sources found');
@@ -37,20 +37,38 @@ export class ProfileScrapingSync {
   private async createOrUpdateScrapingTarget(url: string, sourceName: string): Promise<void> {
     try {
       const urlObj = new URL(url);
-      const newTarget: InsertScrapingTarget = {
-        domain: urlObj.hostname,
-        baseUrl: url,
-        isActive: true,
-        scrapingFrequency: 24, // 24 hours = daily
-        lastScrapedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+      const domain = urlObj.hostname;
 
-      await storage.createScrapingTarget(newTarget);
-      console.log(`Created scraping target for ${sourceName}: ${url}`);
+      // First try to get existing target by domain
+      const existingTarget = await storage.getScrapingTargetByDomain(domain);
+
+      if (existingTarget) {
+        // Update existing target
+        const updateData = {
+          baseUrl: url,
+          isActive: true,
+          updatedAt: new Date()
+        };
+
+        await storage.updateScrapingTarget(existingTarget.id, updateData);
+        console.log(`Updated scraping target for ${sourceName}: ${url}`);
+      } else {
+        // Create new target
+        const newTarget: InsertScrapingTarget = {
+          domain: urlObj.hostname,
+          baseUrl: url,
+          isActive: true,
+          scrapingFrequency: 24, // 24 hours = daily
+          lastScrapedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        await storage.createScrapingTarget(newTarget);
+        console.log(`Created scraping target for ${sourceName}: ${url}`);
+      }
     } catch (error) {
-      console.error(`Failed to create scraping target for ${url}:`, error);
+      console.error(`Failed to create/update scraping target for ${url}:`, error);
     }
   }
 

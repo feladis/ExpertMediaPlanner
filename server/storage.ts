@@ -18,34 +18,34 @@ export interface IStorage {
   getExpertByUsername(username: string): Promise<Expert | undefined>;
   createExpert(expert: InsertExpert): Promise<Expert>;
   updateExpert(id: number, data: Partial<Expert>): Promise<Expert | undefined>;
-  
+
   // Expert Profile methods
   getExpertProfile(expertId: number): Promise<ExpertProfile | undefined>;
   createExpertProfile(profile: InsertExpertProfile): Promise<ExpertProfile>;
   updateExpertProfile(expertId: number, data: Partial<ExpertProfile>): Promise<ExpertProfile | undefined>;
-  
+
   // Topic methods
   getTopics(expertId: number): Promise<Topic[]>;
   getTopic(id: number): Promise<Topic | undefined>;
   createTopic(topic: InsertTopic): Promise<Topic>;
   updateTopic(id: number, data: Partial<Topic>): Promise<Topic | undefined>;
   deleteTopic(id: number): Promise<boolean>;
-  
+
   // Viewpoint methods
   getViewpoints(topicId: number): Promise<Viewpoint[]>;
   createViewpoint(viewpoint: InsertViewpoint): Promise<Viewpoint>;
-  
+
   // Content Idea methods
   getContentIdeas(topicId: number, platform?: string): Promise<ContentIdea[]>;
   getContentIdeaById(id: number): Promise<ContentIdea | undefined>;
   createContentIdea(idea: InsertContentIdea): Promise<ContentIdea>;
   updateContentIdea(id: number, data: Partial<ContentIdea>): Promise<ContentIdea | undefined>;
-  
+
   // Scheduled Content methods
   getScheduledContent(expertId: number): Promise<ScheduledContent[]>;
   createScheduledContent(content: InsertScheduledContent): Promise<ScheduledContent>;
   updateScheduledContent(id: number, data: Partial<ScheduledContent>): Promise<ScheduledContent | undefined>;
-  
+
   // Scraped Content methods
   getScrapedContent(limit?: number, offset?: number): Promise<ScrapedContent[]>;
   getScrapedContentById(id: number): Promise<ScrapedContent | undefined>;
@@ -55,12 +55,12 @@ export interface IStorage {
   deleteScrapedContent(id: number): Promise<boolean>;
   getRecentScrapedContent(days?: number): Promise<ScrapedContent[]>;
   getFreshScrapedContent(url: string, maxAgeHours: number): Promise<ScrapedContent | undefined>;
-  
+
   // Expert Content Relevance methods
   getExpertContentRelevance(expertId: number, limit?: number): Promise<ExpertContentRelevance[]>;
   createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance>;
   getRelevantContentForExpert(expertId: number, limit?: number): Promise<ScrapedContent[]>;
-  
+
   // Scraping Target methods
   getScrapingTargets(): Promise<ScrapingTarget[]>;
   getActiveScrapingTargets(): Promise<ScrapingTarget[]>;
@@ -69,7 +69,7 @@ export interface IStorage {
 }
 
 import { db } from './db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte, desc } from 'drizzle-orm';
 
 export class DatabaseStorage implements IStorage {
   // Expert methods
@@ -93,7 +93,7 @@ export class DatabaseStorage implements IStorage {
     const [newExpert] = await db.insert(experts).values(expert).returning();
     return newExpert;
   }
-  
+
   async updateExpert(id: number, data: Partial<Expert>): Promise<Expert | undefined> {
     const [updatedExpert] = await db.update(experts)
       .set(data)
@@ -125,10 +125,10 @@ export class DatabaseStorage implements IStorage {
     const [newProfile] = await db.insert(expertProfiles)
       .values(formattedProfile)
       .returning();
-    
+
     // Mark the expert's profile as complete
     await this.updateExpert(profile.expertId, { profileComplete: true });
-    
+
     // AUTO-SYNC: Convert information sources to scraping targets
     if (formattedProfile.informationSources && formattedProfile.informationSources.length > 0) {
       try {
@@ -139,16 +139,16 @@ export class DatabaseStorage implements IStorage {
         console.error('Error auto-syncing scraping targets:', error);
       }
     }
-    
+
     return newProfile;
   }
-  
+
   async updateExpertProfile(expertId: number, data: Partial<ExpertProfile>): Promise<ExpertProfile | undefined> {
     const [updatedProfile] = await db.update(expertProfiles)
       .set(data)
       .where(eq(expertProfiles.expertId, expertId))
       .returning();
-    
+
     // AUTO-SYNC: Re-sync information sources if they were updated
     if (updatedProfile && data.informationSources) {
       try {
@@ -159,7 +159,7 @@ export class DatabaseStorage implements IStorage {
         console.error('Error re-syncing scraping targets:', error);
       }
     }
-    
+
     return updatedProfile;
   }
 
@@ -190,13 +190,13 @@ export class DatabaseStorage implements IStorage {
       isRecommended: Math.random() > 0.8,
       status: "active"
     };
-    
+
     const [newTopic] = await db.insert(topics)
       .values(fullTopic)
       .returning();
     return newTopic;
   }
-  
+
   async updateTopic(id: number, data: Partial<Topic>): Promise<Topic | undefined> {
     const [updatedTopic] = await db.update(topics)
       .set(data)
@@ -204,7 +204,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedTopic;
   }
-  
+
   async deleteTopic(id: number): Promise<boolean> {
     const result = await db.delete(topics)
       .where(eq(topics.id, id))
@@ -260,13 +260,13 @@ export class DatabaseStorage implements IStorage {
       sources: idea.sources || [],
 
     };
-    
+
     const [newIdea] = await db.insert(contentIdeas)
       .values(formattedIdea)
       .returning();
     return newIdea;
   }
-  
+
   async updateContentIdea(id: number, data: Partial<ContentIdea>): Promise<ContentIdea | undefined> {
     const [updatedIdea] = await db.update(contentIdeas)
       .set(data)
@@ -291,7 +291,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newContent;
   }
-  
+
   async updateScheduledContent(id: number, data: Partial<ScheduledContent>): Promise<ScheduledContent | undefined> {
     const [updatedContent] = await db.update(scheduledContent)
       .set(data)
@@ -347,7 +347,7 @@ export class DatabaseStorage implements IStorage {
   async getRecentScrapedContent(days = 7): Promise<ScrapedContent[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    
+
     return await db.select()
       .from(scrapedContent)
       .where(and(
@@ -360,7 +360,7 @@ export class DatabaseStorage implements IStorage {
   async getFreshScrapedContent(url: string, maxAgeHours: number): Promise<ScrapedContent | undefined> {
     const cutoffTime = new Date();
     cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
-    
+
     const [content] = await db.select()
       .from(scrapedContent)
       .where(and(
@@ -370,7 +370,7 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(scrapedContent.scrapedDate))
       .limit(1);
-    
+
     return content;
   }
 
@@ -416,19 +416,27 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(scrapingTargets);
   }
 
-  async createScrapingTarget(target: InsertScrapingTarget): Promise<ScrapingTarget> {
-    const [newTarget] = await db.insert(scrapingTargets)
-      .values(target)
-      .returning();
-    return newTarget;
+  async getScrapingTargetByDomain(domain: string): Promise<ScrapingTarget | undefined> {
+    const results = await db
+      .select()
+      .from(scrapingTargets)
+      .where(eq(scrapingTargets.domain, domain))
+      .limit(1);
+
+    return results[0];
   }
 
-  async updateScrapingTarget(id: number, updates: Partial<InsertScrapingTarget>): Promise<ScrapingTarget> {
-    const [updated] = await db.update(scrapingTargets)
-      .set({ ...updates, updatedAt: new Date() })
+  async updateScrapingTarget(id: number, data: Partial<InsertScrapingTarget>): Promise<ScrapingTarget | null> {
+    const results = await db
+      .update(scrapingTargets)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
       .where(eq(scrapingTargets.id, id))
       .returning();
-    return updated;
+
+    return results[0] || null;
   }
 
   async getScrapedContentByUrl(url: string): Promise<ScrapedContent | null> {
@@ -499,7 +507,7 @@ export const storage = new DatabaseStorage();
         name: "John Smith",
         role: "Marketing Consultant"
       });
-      
+
       // Update the profileComplete status after creation
       const demoCreated = await storage.getExpertByUsername("demo");
       if (demoCreated) {
