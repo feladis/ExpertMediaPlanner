@@ -27,7 +27,12 @@ import { fromZodError } from "zod-validation-error";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Error handling middleware
   const handleError = (err: any, res: Response) => {
-    console.error(err);
+    // Only log meaningful error information, not connection objects
+    console.error('API Error:', {
+      message: err.message,
+      name: err.name,
+      status: err.status || 500
+    });
 
     if (err instanceof ZodError) {
       return res.status(400).json({ 

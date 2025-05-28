@@ -43,8 +43,14 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    console.error('Server error:', {
+      status,
+      message,
+      stack: err.stack?.split('\n').slice(0, 5).join('\n') // Log only first 5 lines of stack
+    });
+
     res.status(status).json({ message });
-    throw err;
+    // Don't throw the error again after sending response
   });
 
   // importantly only setup vite in development and after

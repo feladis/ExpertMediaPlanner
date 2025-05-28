@@ -11,5 +11,17 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Configure pool with proper error handling
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 10
+});
+
+// Add error handling to prevent connection object logging
+pool.on('error', (err) => {
+  console.error('PostgreSQL pool error:', err.message);
+});
+
 export const db = drizzle({ client: pool, schema });

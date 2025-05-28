@@ -262,7 +262,7 @@ export class DatabaseStorage implements IStorage {
       format: idea.format,
       keyPoints: idea.keyPoints || [],
       sources: idea.sources || [],
-
+      saved: false
     };
 
     const [newIdea] = await db.insert(contentIdeas)
