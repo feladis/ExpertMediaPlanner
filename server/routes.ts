@@ -14,6 +14,7 @@ import {
 import { generateTopics, generateContentIdeas } from "./anthropic";
 import { WebScraper, calculateRelevanceScore } from "./scraping";
 import { contentPipeline } from "./content-pipeline";
+import { contentPipelineV2 } from "./content-pipeline-v2";
 import { perplexityService } from "./perplexity";
 import { registerPerplexityRoutes } from "./perplexity-routes";
 import { registerMonitoringRoutes } from "./monitoring-routes";
@@ -515,33 +516,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Content Idea Generation API - SCRAPING-FIRST WORKFLOW
+  // AI Content Idea Generation API - SAFE MIGRATION SWITCH
   app.post('/api/generate-content-ideas', async (req: Request, res: Response) => {
     try {
       const { topicId, platform, expertId } = req.body;
 
       if (!topicId || !platform || !expertId) {
-        return res.status(400).json({ message: 'Topic ID, platform, and expert ID are required for scraping-first generation' });
+        return res.status(400).json({ message: 'Topic ID, platform, and expert ID are required' });
       }
 
-      // Import content pipeline
-      const { contentPipeline } = await import('./content-pipeline');
+      // SWITCH SEGURO: Uses environment variable
+      const useLegacy = process.env.USE_LEGACY_SCRAPING === 'true';
 
-      // Use scraping-first workflow
-      const result = await contentPipeline.generateContentWithScraping({
-        topicId,
-        platform,
-        expertId
-      });
+      if (useLegacy) {
+        console.log('[ROUTES] Using LEGACY pipeline (scraping)');
+        // Legacy code continues working
+        const result = await contentPipeline.generateContentWithScraping({
+          topicId,
+          platform,
+          expertId
+        });
 
-      res.status(201).json({
-        ideas: result.ideas,
-        metadata: {
-          sourcesUsed: result.sourcesUsed,
-          timestamp: result.timestamp,
-          scrapingFirst: true
-        }
-      });
+        return res.status(201).json({
+          ideas: result.ideas,
+          metadata: {
+            ...result.metadata,
+            engine: 'legacy-scraping',
+            sourcesUsed: result.sourcesUsed,
+            timestamp: result.timestamp
+          }
+        });
+
+      } else {
+        console.log('[ROUTES] Using NEW pipeline (Perplexity)');
+        // New code
+        const result = await contentPipelineV2.generateContent({
+          topicId,
+          platform,
+          expertId
+        });
+
+        return res.status(201).json({
+          ideas: result.ideas,
+          metadata: {
+            ...result.metadata,
+            sourcesUsed: result.sourcesUsed,
+            timestamp: result.timestamp
+          }
+        });
+      }
     } catch (err: any) {
       console.error('Content generation error:', err);
       if (err.message && (

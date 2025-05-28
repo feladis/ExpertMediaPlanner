@@ -211,6 +211,8 @@ interface ContentIdeaGenerationParams {
   expertiseKeywords: string[];
   voiceTone: string[];
   expertId?: number;
+  additionalContext?: string;   // NEW: Real-time Perplexity context
+  realSources?: string[];       // NEW: Authentic sources from Perplexity
 }
 
 interface ContentIdeaResult {
@@ -283,13 +285,25 @@ export async function generateContentIdeas(params: ContentIdeaGenerationParams):
 3. Consider the expert's keywords and voice tone
 4. Include the provided viewpoints when applicable
 
+${params.additionalContext ? `
+
+RECENT INFORMATION CONTEXT (last 7 days):
+${params.additionalContext}
+
+Use this recent information to generate relevant content ideas.` : ''}
+
 STRICT SOURCE REQUIREMENTS:
-${realSources.length > 0 ? 
+${params.realSources && params.realSources.length > 0 ? 
   `You have access to these REAL URLs ONLY:
+${params.realSources.slice(0, 8).join('\n')}
+
+MANDATORY: You MUST ONLY select from these exact URLs. DO NOT create any new URLs. DO NOT modify these URLs. If none of these URLs seem relevant, use "No relevant sources available".` :
+  realSources.length > 0 ? 
+    `You have access to these REAL URLs ONLY:
 ${realSources.slice(0, 8).join('\n')}
 
 MANDATORY: You MUST ONLY select from these exact URLs. DO NOT create any new URLs. DO NOT modify these URLs. If none of these URLs seem relevant, use "No relevant sources available".` :
-  `NO SOURCES AVAILABLE: Since no scraped content exists, you MUST use exactly this text for all sources: "No sources available - manual research required"`}
+    `NO SOURCES AVAILABLE: Since no scraped content exists, you MUST use exactly this text for all sources: "No sources available - manual research required"`}
 
 FORBIDDEN: Never create URLs like hbr.org/..., mit.edu/..., mckinsey.com/... or any other fake URLs.
 
