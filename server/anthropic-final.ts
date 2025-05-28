@@ -197,38 +197,45 @@ Generate strategic content topics that align with this expert's positioning and 
 
     const responseText = response.content[0]?.type === 'text' ? response.content[0].text : '';
     console.log(`✅ Topics generated successfully`);
-    console.log('DEBUG - Raw Anthropic response:', responseText.substring(0, 200));
+    console.log('DEBUG - Raw Anthropic response:', JSON.stringify(responseText.substring(0, 300)));
 
     try {
-      // Robust JSON extraction and parsing
-      let cleaned = responseText.trim();
+      // Simple and effective JSON extraction
+      let jsonStr = responseText.trim();
       
-      // Remove markdown code blocks
-      cleaned = cleaned
-        .replace(/^```(?:json|JSON)?\s*/gm, '')
-        .replace(/\s*```\s*$/gm, '')
-        .replace(/^`+/gm, '')
-        .replace(/`+$/gm, '')
-        .trim();
+      // Remove code blocks and backticks completely
+      jsonStr = jsonStr.replace(/```[^`]*```/g, '');
+      jsonStr = jsonStr.replace(/```/g, '');
+      jsonStr = jsonStr.replace(/`/g, '');
       
-      // Extract JSON object if wrapped in text
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleaned = jsonMatch[0];
+      // Find the JSON object boundaries
+      const start = jsonStr.indexOf('{');
+      const end = jsonStr.lastIndexOf('}');
+      
+      if (start !== -1 && end !== -1 && end > start) {
+        jsonStr = jsonStr.substring(start, end + 1);
       }
       
-      // Additional cleanup for common formatting issues
-      cleaned = cleaned
-        .replace(/\\n/g, '\n')
-        .replace(/\\"/g, '"')
-        .replace(/\n\s*\n/g, '\n')
-        .trim();
+      console.log('DEBUG - Extracted JSON:', jsonStr.substring(0, 200));
       
-      const parsedResponse = JSON.parse(cleaned);
+      const parsedResponse = JSON.parse(jsonStr);
       return parsedResponse.topics || [];
     } catch (parseError) {
       console.error('Failed to parse Anthropic response:', parseError);
       console.error('Raw response text:', responseText.substring(0, 500));
+      
+      // Fallback: Try to extract any JSON-like structure
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const fallbackJson = jsonMatch[0].replace(/```/g, '').replace(/`/g, '');
+          const fallbackResponse = JSON.parse(fallbackJson);
+          return fallbackResponse.topics || [];
+        }
+      } catch (fallbackError) {
+        console.error('Fallback parsing also failed:', fallbackError);
+      }
+      
       throw new Error('Failed to generate properly formatted topics');
     }
 
