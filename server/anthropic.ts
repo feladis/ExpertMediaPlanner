@@ -3,8 +3,6 @@ import { storage } from './storage';
 import { ExpertProfile, ScrapedContent } from '@shared/schema';
 import { perplexityService } from './services/perplexity';
 import { sourceValidator } from './services/source-validator';
-import { researchCacheService, type ResearchQuery } from './services/research-cache';
-import { smartResearchService } from './services/smart-research';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
@@ -170,32 +168,30 @@ Your response MUST be formatted as a valid JSON object with this structure:
   ]
 }`;
 
-    // MANDATORY: Get comprehensive multi-angle market intelligence
+    // MANDATORY: Get real-time market intelligence as the foundation
+    const researchQuery = `latest trends ${params.primaryExpertise} ${params.expertiseKeywords.slice(0, 3).join(' ')}`;
+    
+    // Get expert ID for caching - this should be passed as parameter in the future
     const expertId = 1; // TODO: Pass this from the calling function
     
-    console.log(`🎯 Generating topics for expert ${expertId} using comprehensive market intelligence`);
+    console.log(`🎯 Generating topics for expert ${expertId} using real-time market intelligence`);
     
-    // Generate multi-angle research (trends, challenges, opportunities)
-    const comprehensiveResearch = await smartResearchService.generateComprehensiveResearch({
+    // This will either return cached research or fetch fresh data
+    // If Perplexity is unavailable, it will throw a clear error
+    const perplexityResearch = await getPerplexityResearch(
+      researchQuery, 
       expertId,
-      primaryExpertise: params.primaryExpertise,
-      expertiseKeywords: params.expertiseKeywords,
-      targetAudience: params.targetAudience,
-      platforms: params.platforms,
-      recencyFilter: 'week'
-    });
+      params.primaryExpertise,
+      params.expertiseKeywords,
+      { recency: 'week' }
+    );
 
-    console.log(`📊 Research complete - Quality: ${comprehensiveResearch.qualityScore.toFixed(1)}%, Sources: ${comprehensiveResearch.sources.length}`);
+    // Build user prompt with guaranteed real-time intelligence
+    const userPrompt = `Based on the following recent market intelligence from trusted sources (last 7 days):
 
-    // Build user prompt with comprehensive market intelligence
-    const userPrompt = `Based on the following comprehensive market intelligence from verified sources (last 7 days):
+${perplexityResearch}
 
-${comprehensiveResearch.synthesis}
-
-VERIFIED RESEARCH SOURCES:
-${comprehensiveResearch.sources.slice(0, 5).join('\n')}
-
-Expert Profile Context:
+And considering my expert profile:
 - Primary expertise: ${params.primaryExpertise}
 - Secondary expertise: ${params.secondaryExpertise.join(', ')}
 - Expertise keywords: ${params.expertiseKeywords.join(', ')}
@@ -205,11 +201,7 @@ Expert Profile Context:
 - Target audience: ${params.targetAudience}
 - Content goals: ${params.contentGoals.join(', ')}
 
-Generate strategic content topics that leverage this multi-dimensional market intelligence. Each topic should:
-1. Connect current trends with market challenges or opportunities
-2. Position the expert as a thought leader addressing real industry needs
-3. Reference specific insights from the research synthesis above
-4. Create content opportunities that bridge market relevance with expert positioning`;
+Please generate strategic content topics that translate these current market discussions into content opportunities aligned with my positioning and goals. Each topic should directly reference specific insights from the research provided above.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-7-sonnet-20250219',
