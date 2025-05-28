@@ -171,7 +171,7 @@ Your response MUST be formatted as a valid JSON object with this structure:
 }`;
 
     // CLEAN ARCHITECTURE: Master Perplexity → Cache → Anthropic
-    const expertId = 1; // TODO: Pass this from the calling function
+    const expertId = 2; // Using Felipe's expert ID from the console logs
     
     console.log(`🎯 Generating topics for ${params.primaryExpertise} expert using clean architecture`);
     
@@ -203,52 +203,27 @@ Expert Profile Context:
 
 Generate strategic content topics that translate this market intelligence into actionable content opportunities for this expert's positioning and goals.`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
-      max_tokens: 3000,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-    });
+      const response = await anthropic.messages.create({
+        model: 'claude-3-7-sonnet-20250219',
+        max_tokens: 3000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+        temperature: 0.7
+      });
 
-    const responseText = response.content[0]?.text || '';
-    console.log(`✅ Topics generated successfully`);
+      // Extract text content from the response
+      if (response.content[0].type !== 'text') {
+        throw new Error('Expected text response from Anthropic');
+      }
+      
+      const content = response.content[0].text;
+      console.log(`✅ Topics generated successfully`);
 
-    try {
-      const parsedResponse = JSON.parse(responseText);
-      return parsedResponse.topics || [];
-    } catch (parseError) {
-      console.error('Failed to parse Anthropic response:', parseError);
-      throw new Error('Failed to generate properly formatted topics');
-    }
-
-    } catch (error) {
-      console.error('❌ Topic generation failed:', error);
-      throw new Error(`Unable to generate topics: ${error.message}`);
-    }
-
-    const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
-      max_tokens: 3000,
-      system: systemPrompt,
-      messages: [
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.7
-    });
-
-    // Extract text content from the response
-    if (response.content[0].type !== 'text') {
-      throw new Error('Expected text response from Anthropic');
-    }
-    
-    const content = response.content[0].text;
-    
-    try {
       // Clean up the content in case it's wrapped in markdown code blocks
       let cleanContent = content;
       

@@ -11,7 +11,7 @@ import {
   insertScrapedContentSchema,
   insertScrapingTargetSchema
 } from "@shared/schema";
-import { generateTopics, generateContentIdeas } from "./anthropic-final";
+import { generateTopics, generateContentIdeas } from "./anthropic-fixed";
 // ❌ PHASE 3: REMOVED - WebScraper import (scraping system deprecated)
 import { contentPipeline } from "./content-pipeline";
 import { contentPipelineV2 } from "./content-pipeline-v2";
