@@ -50,6 +50,7 @@ export interface IStorage {
   getScrapedContent(limit?: number, offset?: number): Promise<ScrapedContent[]>;
   getScrapedContentById(id: number): Promise<ScrapedContent | undefined>;
   getScrapedContentByUrl(url: string): Promise<ScrapedContent | undefined>;
+  getScrapedContentByHash(hash: string): Promise<ScrapedContent | undefined>;
   createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent>;
   updateScrapedContent(id: number, data: Partial<ScrapedContent>): Promise<ScrapedContent | undefined>;
   deleteScrapedContent(id: number): Promise<boolean>;
@@ -66,6 +67,9 @@ export interface IStorage {
   getActiveScrapingTargets(): Promise<ScrapingTarget[]>;
   createScrapingTarget(target: InsertScrapingTarget): Promise<ScrapingTarget>;
   updateScrapingTarget(id: number, data: Partial<ScrapingTarget>): Promise<ScrapingTarget | undefined>;
+
+  // Content Count methods
+  getContentCountForExpert(expertId: number): Promise<number>;
 }
 
 import { db } from './db';
@@ -323,6 +327,13 @@ export class DatabaseStorage implements IStorage {
     return content;
   }
 
+  async getScrapedContentByHash(hash: string): Promise<ScrapedContent | undefined> {
+    const [content] = await db.select()
+      .from(scrapedContent)
+      .where(eq(scrapedContent.contentHash, hash));
+    return content;
+  }
+
   async createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent> {
     const [newContent] = await db.insert(scrapedContent)
       .values(content)
@@ -490,6 +501,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(scrapingTargets.id, id))
       .returning();
     return updatedTarget;
+  }
+
+  // Content Count methods
+  async getContentCountForExpert(expertId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(expertContentRelevance)
+      .innerJoin(scrapedContent, eq(expertContentRelevance.scrapedContentId, scrapedContent.id))
+      .where(and(
+        eq(expertContentRelevance.expertId, expertId),
+        eq(scrapedContent.status, 'active')
+      ));
+    
+    return result[0]?.count || 0;
   }
 }
 

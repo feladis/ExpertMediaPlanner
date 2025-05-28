@@ -13,6 +13,7 @@ import {
 } from "@shared/schema";
 import { generateTopics, generateContentIdeas } from "./anthropic";
 import { WebScraper, calculateRelevanceScore } from "./scraping";
+import { contentPipeline } from "./content-pipeline";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -307,16 +308,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (contentCount === 0) {
         console.log(`[TOPIC-GEN] Triggering bootstrap for expert ${expertId}`);
 
-        // Import content pipeline and trigger bootstrap
-        const { contentPipeline } = await import('./content-pipeline');
+        // Use imported content pipeline for bootstrap
 
         try {
-          // Use a dummy topic to trigger bootstrap scraping
+          // Create a temporary bootstrap topic for scraping purposes
+          const bootstrapTopic = await storage.createTopic({
+            expertId,
+            title: 'Bootstrap Content Gathering',
+            description: 'Temporary topic used for initial content scraping',
+            category: 'Bootstrap',
+            tags: ['bootstrap', 'setup']
+          });
+
+          // Use the bootstrap topic to trigger content scraping
           const bootstrapResult = await contentPipeline.generateContentWithScraping({
-            topicId: 1, // Dummy topic ID for bootstrap
+            topicId: bootstrapTopic.id,
             platform: 'linkedin',
             expertId
           });
+
+          // Clean up the bootstrap topic
+          await storage.deleteTopic(bootstrapTopic.id);
 
           // Recheck content count after bootstrap
           contentCount = await storage.getContentCountForExpert(expertId);
