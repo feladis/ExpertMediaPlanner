@@ -20,13 +20,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Error handling middleware
   const handleError = (err: any, res: Response) => {
     console.error(err);
-    
+
     if (err instanceof ZodError) {
       return res.status(400).json({ 
         message: fromZodError(err).message 
       });
     }
-    
+
     return res.status(500).json({ 
       message: err.message || 'Internal server error' 
     });
@@ -47,11 +47,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const expert = await storage.getExpert(id);
-      
+
       if (!expert) {
         return res.status(404).json({ message: 'Expert not found' });
       }
-      
+
       res.json(expert);
     } catch (err) {
       handleError(err, res);
@@ -62,11 +62,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const expert = await storage.updateExpert(id, req.body);
-      
+
       if (!expert) {
         return res.status(404).json({ message: 'Expert not found' });
       }
-      
+
       res.json(expert);
     } catch (err) {
       handleError(err, res);
@@ -88,11 +88,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const expertId = parseInt(req.params.expertId);
       const profile = await storage.getExpertProfile(expertId);
-      
+
       if (!profile) {
         return res.status(404).json({ message: 'Profile not found' });
       }
-      
+
       res.json(profile);
     } catch (err) {
       handleError(err, res);
@@ -103,11 +103,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const expertId = parseInt(req.params.expertId);
       const profile = await storage.updateExpertProfile(expertId, req.body);
-      
+
       if (!profile) {
         return res.status(404).json({ message: 'Profile not found' });
       }
-      
+
       res.json(profile);
     } catch (err) {
       handleError(err, res);
@@ -139,11 +139,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const topic = await storage.getTopic(id);
-      
+
       if (!topic) {
         return res.status(404).json({ message: 'Topic not found' });
       }
-      
+
       res.json(topic);
     } catch (err) {
       handleError(err, res);
@@ -154,11 +154,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const topic = await storage.updateTopic(id, req.body);
-      
+
       if (!topic) {
         return res.status(404).json({ message: 'Topic not found' });
       }
-      
+
       res.json(topic);
     } catch (err) {
       handleError(err, res);
@@ -169,11 +169,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteTopic(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: 'Topic not found' });
       }
-      
+
       res.status(204).end();
     } catch (err) {
       handleError(err, res);
@@ -207,17 +207,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const idea = await storage.getContentIdeaById(id);
-      
+
       if (!idea) {
         return res.status(404).json({ message: 'Content idea not found' });
       }
-      
+
       res.json(idea);
     } catch (err) {
       handleError(err, res);
     }
   });
-  
+
   // Get content ideas by topic ID
   app.get('/api/content-ideas/:topicId', async (req: Request, res: Response) => {
     try {
@@ -244,11 +244,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const idea = await storage.updateContentIdea(id, req.body);
-      
+
       if (!idea) {
         return res.status(404).json({ message: 'Content idea not found' });
       }
-      
+
       res.json(idea);
     } catch (err) {
       handleError(err, res);
@@ -280,52 +280,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const content = await storage.updateScheduledContent(id, req.body);
-      
+
       if (!content) {
         return res.status(404).json({ message: 'Scheduled content not found' });
       }
-      
+
       res.json(content);
     } catch (err) {
       handleError(err, res);
     }
   });
 
-  // AI Topic Generation API - SCRAPING-FIRST ENFORCEMENT
+  // AI Topic Generation API - SCRAPING-FIRST WORKFLOW WITH BOOTSTRAP
   app.post('/api/generate-topics', async (req: Request, res: Response) => {
     try {
-      const { expertId, count } = req.body;
-      
+      const { expertId } = req.body;
+
       if (!expertId) {
-        return res.status(400).json({ message: 'Expert ID is required' });
+        return res.status(400).json({ message: 'Expert ID is required for scraping-first topic generation' });
       }
-      
-      // Get expert profile
-      const profile = await storage.getExpertProfile(parseInt(expertId));
-      
-      if (!profile) {
-        return res.status(404).json({ message: 'Expert profile not found' });
-      }
-      
-      // SCRAPING-FIRST ENFORCEMENT: Check if we have scraped content
-      const relevantContent = await storage.getRelevantContentForExpert(parseInt(expertId), 1);
-      
-      if (relevantContent.length === 0) {
-        // Auto-sync sources and try scraping
-        const { profileScrapingSync } = await import('./profile-scraping-sync');
-        await profileScrapingSync.syncExpertSources(parseInt(expertId));
-        
-        // Check again after sync
-        const contentAfterSync = await storage.getRelevantContentForExpert(parseInt(expertId), 1);
-        
-        if (contentAfterSync.length === 0) {
+
+      // BOOTSTRAP-FIRST ENFORCEMENT: Trigger bootstrap if no content exists
+      let contentCount = await storage.getContentCountForExpert(expertId);
+      console.log(`[TOPIC-GEN] Expert ${expertId} has ${contentCount} content pieces`);
+
+      if (contentCount === 0) {
+        console.log(`[TOPIC-GEN] Triggering bootstrap for expert ${expertId}`);
+
+        // Import content pipeline and trigger bootstrap
+        const { contentPipeline } = await import('./content-pipeline');
+
+        try {
+          // Use a dummy topic to trigger bootstrap scraping
+          const bootstrapResult = await contentPipeline.generateContentWithScraping({
+            topicId: 1, // Dummy topic ID for bootstrap
+            platform: 'linkedin',
+            expertId
+          });
+
+          // Recheck content count after bootstrap
+          contentCount = await storage.getContentCountForExpert(expertId);
+          console.log(`[TOPIC-GEN] After bootstrap: ${contentCount} content pieces`);
+
+        } catch (bootstrapError) {
+          console.error('[TOPIC-GEN] Bootstrap failed:', bootstrapError);
           return res.status(400).json({ 
-            message: 'Cannot generate topics without authentic sources. Please ensure your profile has valid information sources and try again.',
-            code: 'NO_SCRAPED_CONTENT'
+            message: 'Cannot generate topics without authentic sources. Bootstrap attempt failed. Please check your information sources configuration.' 
           });
         }
       }
-      
+
+      // Final validation after potential bootstrap
+      if (contentCount === 0) {
+        return res.status(400).json({ 
+          message: 'Cannot generate topics without authentic sources. Please ensure your profile has valid information sources and try again.' 
+        });
+      }
+
+      // Get expert profile
+      const profile = await storage.getExpertProfile(parseInt(expertId));
+
+      if (!profile) {
+        return res.status(404).json({ message: 'Expert profile not found' });
+      }
+
       // Generate topics using Anthropic with scraped content context
       const topics = await generateTopics({
         primaryExpertise: profile.primaryExpertise || '',
@@ -336,12 +354,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         platforms: profile.platforms || [],
         targetAudience: profile.targetAudience || '',
         contentGoals: profile.contentGoals || [],
-        count: count || 3
+        count: req.body.count || 3
       });
-      
+
       // Save topics and viewpoints to storage
       const savedTopics = [];
-      
+
       for (const topic of topics) {
         const newTopic = await storage.createTopic({
           expertId: parseInt(expertId),
@@ -350,7 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: topic.category,
           tags: topic.tags
         });
-        
+
         // Create viewpoints for the topic
         if (topic.viewpoints && topic.viewpoints.length > 0) {
           for (const viewpoint of topic.viewpoints) {
@@ -361,10 +379,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         }
-        
+
         savedTopics.push(newTopic);
       }
-      
+
       res.status(201).json(savedTopics);
     } catch (err) {
       handleError(err, res);
@@ -425,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use Replit environment variables as primary source, fallback to headers
       const replitUserId = process.env.REPLIT_USERID || req.headers['x-replit-user-id'] as string;
       const replitUserName = process.env.REPLIT_USER || req.headers['x-replit-user-name'] as string;
-      
+
       console.log('All Request Headers:', Object.keys(req.headers));
       console.log('Replit Auth Headers:', { 
         replitUserId, 
@@ -434,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         host: req.headers.host,
         allHeaders: req.headers
       });
-      
+
       if (!replitUserId || !replitUserName || replitUserId.trim() === '' || replitUserName.trim() === '') {
         console.log('Missing or empty Replit authentication headers');
         return res.status(401).json({ 
@@ -450,14 +468,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
-      
+
       // Check if expert already exists by Replit ID first, then by username
       let expert = await storage.getExpertByReplitId(replitUserId);
-      
+
       if (!expert) {
         expert = await storage.getExpertByUsername(replitUserName);
       }
-      
+
       if (!expert) {
         // Create new expert from Replit user data
         expert = await storage.createExpert({
@@ -472,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update existing expert with Replit ID
         expert = await storage.updateExpert(expert.id, { replitId: replitUserId });
       }
-      
+
       res.json({
         id: expert.id,
         username: expert.username,
@@ -491,17 +509,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/login', async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
-      
+
       if (!username || !password) {
         return res.status(400).json({ message: 'Username and password are required' });
       }
-      
+
       const expert = await storage.getExpertByUsername(username);
-      
+
       if (!expert || expert.password !== password) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
-      
+
       res.json({
         id: expert.id,
         username: expert.username,
@@ -516,13 +534,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Web Scraping and RAG System Routes
-  
+
   // Get scraped content
   app.get('/api/scraped-content', async (req: Request, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
-      
+
       const content = await storage.getScrapedContent(limit, offset);
       res.json(content);
     } catch (err) {
@@ -534,7 +552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/validate-sources', async (req: Request, res: Response) => {
     try {
       const { sources } = req.body;
-      
+
       if (!sources || !Array.isArray(sources)) {
         return res.status(400).json({ message: 'Sources array is required' });
       }
@@ -563,14 +581,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/scrape-url', async (req: Request, res: Response) => {
     try {
       const { url } = req.body;
-      
+
       if (!url) {
         return res.status(400).json({ message: 'URL is required' });
       }
 
       const scraper = new WebScraper();
       const result = await scraper.scrapeUrl(url);
-      
+
       if (result.success && result.content) {
         // Save to database
         const savedContent = await storage.createScrapedContent(result.content);
@@ -588,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const expertId = parseInt(req.params.expertId);
       const limit = parseInt(req.query.limit as string) || 5;
-      
+
       const relevantContent = await storage.getRelevantContentForExpert(expertId, limit);
       res.json(relevantContent);
     } catch (err) {
@@ -600,7 +618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/calculate-relevance', async (req: Request, res: Response) => {
     try {
       const { expertId, scrapedContentId } = req.body;
-      
+
       if (!expertId || !scrapedContentId) {
         return res.status(400).json({ message: 'Expert ID and Scraped Content ID are required' });
       }
@@ -608,13 +626,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expert = await storage.getExpert(expertId);
       const expertProfile = await storage.getExpertProfile(expertId);
       const scrapedContent = await storage.getScrapedContentById(scrapedContentId);
-      
+
       if (!expert || !expertProfile || !scrapedContent) {
         return res.status(404).json({ message: 'Expert, profile, or content not found' });
       }
 
       const relevanceScore = calculateRelevanceScore(scrapedContent, expertProfile);
-      
+
       const relevanceData = {
         expertId,
         scrapedContentId,
@@ -654,9 +672,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/sync-scraping-targets', async (req: Request, res: Response) => {
     try {
       const { expertId } = req.body;
-      
+
       const { profileScrapingSync } = await import('./profile-scraping-sync');
-      
+
       if (expertId) {
         await profileScrapingSync.syncExpertSources(parseInt(expertId));
         res.json({ message: `Synced scraping targets for expert ${expertId}` });
@@ -672,24 +690,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/bulk-scrape', async (req: Request, res: Response) => {
     try {
       const { expertId } = req.body;
-      
+
       const targets = await storage.getActiveScrapingTargets();
       const scraper = new WebScraper();
-      
+
       const results = [];
-      
+
       for (const target of targets) {
         try {
           const result = await scraper.scrapeUrl(target.baseUrl);
-          
+
           if (result.success && result.content) {
             // Check if content already exists
             const existing = await storage.getScrapedContentByUrl(target.baseUrl);
-            
+
             if (!existing) {
               // Save new content
               const savedContent = await storage.createScrapedContent(result.content);
-              
+
               // If expertId provided, calculate relevance
               if (expertId) {
                 const expertProfile = await storage.getExpertProfile(expertId);
@@ -703,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   });
                 }
               }
-              
+
               results.push({ url: target.baseUrl, success: true, contentId: savedContent.id });
             } else {
               results.push({ url: target.baseUrl, success: true, message: 'Content already exists' });
@@ -715,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           results.push({ url: target.baseUrl, success: false, error: 'Scraping failed' });
         }
       }
-      
+
       res.json({ results, totalProcessed: targets.length });
     } catch (err) {
       handleError(err, res);

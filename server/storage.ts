@@ -69,7 +69,7 @@ export interface IStorage {
 }
 
 import { db } from './db';
-import { eq, and, gte, desc } from 'drizzle-orm';
+import { and, eq, desc, gte, inArray, sql } from 'drizzle-orm';
 
 export class DatabaseStorage implements IStorage {
   // Expert methods
