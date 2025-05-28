@@ -3,6 +3,7 @@ import { storage } from './storage';
 import { ExpertProfile, ScrapedContent } from '@shared/schema';
 import { perplexityService } from './services/perplexity';
 import { sourceValidator } from './services/source-validator';
+import { researchCacheService, type ResearchQuery } from './services/research-cache';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
