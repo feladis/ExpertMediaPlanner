@@ -15,7 +15,7 @@ export class ResearchCacheService {
       const results = await db
         .select()
         .from(researchCache)
-        .where(eq(researchCache.cacheKey, cacheKey))
+        .where(eq(researchCache.queryHash, cacheKey))
         .orderBy(desc(researchCache.createdAt))
         .limit(1);
 
@@ -24,7 +24,7 @@ export class ResearchCacheService {
       }
 
       const cached = results[0];
-      const ageInHours = (Date.now() - new Date(cached.createdAt).getTime()) / (1000 * 60 * 60);
+      const ageInHours = (Date.now() - new Date(cached.createdAt || Date.now()).getTime()) / (1000 * 60 * 60);
 
       // Return cached data if within 24 hour TTL
       if (ageInHours <= this.CACHE_TTL_HOURS) {
@@ -33,17 +33,17 @@ export class ResearchCacheService {
           .update(researchCache)
           .set({ 
             usageCount: (cached.usageCount || 0) + 1,
-            lastAccessed: new Date()
+            lastUsedAt: new Date()
           })
           .where(eq(researchCache.id, cached.id));
 
         return {
           id: cached.id,
-          content: cached.content,
+          content: cached.researchContent,
           sources: cached.sources,
-          qualityScore: cached.qualityScore,
-          expertId: cached.expertId,
-          createdAt: cached.createdAt,
+          qualityScore: cached.qualityScore || 0,
+          expertId: cached.expertId || 0,
+          createdAt: cached.createdAt || new Date(),
           metadata: cached.metadata || {}
         };
       }
@@ -58,15 +58,20 @@ export class ResearchCacheService {
   async store(cacheKey: string, researchResult: any): Promise<void> {
     try {
       await db.insert(researchCache).values({
-        cacheKey,
-        content: researchResult.content,
-        sources: researchResult.sources,
-        qualityScore: researchResult.qualityScore,
+        queryHash: cacheKey,
+        searchQuery: researchResult.searchQuery || 'research_query',
         expertId: researchResult.expertId,
-        metadata: researchResult.metadata,
+        primaryExpertise: researchResult.primaryExpertise || 'expertise',
+        expertiseKeywords: researchResult.expertiseKeywords || [],
+        researchContent: researchResult.content,
+        sources: researchResult.sources,
+        recencyFilter: researchResult.recencyFilter || 'week',
+        qualityScore: researchResult.qualityScore,
+        usageCount: 1,
+        lastUsedAt: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         createdAt: new Date(),
-        lastAccessed: new Date(),
-        usageCount: 1
+        metadata: researchResult.metadata
       });
       
       console.log(`✅ Research stored in cache: ${cacheKey}`);
