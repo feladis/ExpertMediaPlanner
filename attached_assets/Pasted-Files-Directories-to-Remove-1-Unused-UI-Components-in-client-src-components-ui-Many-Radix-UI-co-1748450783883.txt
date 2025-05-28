@@ -1,0 +1,91 @@
+Files/Directories to Remove:
+1. Unused UI Components (in client/src/components/ui/)
+Many Radix UI components that aren't being used in your app:
+
+accordion.tsx
+alert-dialog.tsx
+alert.tsx
+aspect-ratio.tsx
+breadcrumb.tsx
+calendar.tsx
+carousel.tsx
+checkbox.tsx
+collapsible.tsx
+command.tsx
+context-menu.tsx
+drawer.tsx
+form.tsx
+hover-card.tsx
+input-otp.tsx
+menubar.tsx
+pagination.tsx
+popover.tsx
+progress.tsx
+radio-group.tsx
+resizable.tsx
+scroll-area.tsx
+sheet.tsx
+skeleton.tsx
+slider.tsx
+switch.tsx
+table.tsx
+textarea.tsx
+toast.tsx
+toaster.tsx
+toggle-group.tsx
+toggle.tsx
+tooltip.tsx
+2. Unused Page Components
+client/src/pages/content-calendar.tsx - No routes or references found
+client/src/pages/content-editor.tsx - No routes or references found
+3. Duplicate/Redundant Server Files
+server/perplexity.ts - Duplicate of server/services/perplexity.ts
+server/source-validator.ts - Duplicate of server/services/source-validator.ts
+4. Test Files for Removed Features
+test-rag-system.js - Standalone test file not integrated
+test-scraping-workflow.js - Standalone test file not integrated
+5. Attached Assets (Development Files)
+All files in attached_assets/ appear to be development notes and can be archived:
+
+All .pdf files
+All .txt files with pasted code snippets
+6. Unused Package Dependencies (to review in package.json)
+Based on the codebase analysis, these packages appear unused:
+
+@radix-ui/react-accordion
+@radix-ui/react-alert-dialog
+@radix-ui/react-aspect-ratio
+@radix-ui/react-checkbox
+@radix-ui/react-collapsible
+@radix-ui/react-context-menu
+@radix-ui/react-hover-card
+@radix-ui/react-menubar
+@radix-ui/react-popover
+@radix-ui/react-progress
+@radix-ui/react-radio-group
+@radix-ui/react-scroll-area
+@radix-ui/react-slider
+@radix-ui/react-switch
+@radix-ui/react-toast
+@radix-ui/react-toggle
+@radix-ui/react-toggle-group
+@radix-ui/react-tooltip
+input-otp
+embla-carousel-react
+recharts (no charts found in codebase)
+react-day-picker
+vaul
+7. Unused Server Modules
+server/fallback-system.ts - No imports found
+server/intelligent-cache.ts - No imports found
+server/profile-scraping-sync.ts - No imports found
+Recommended Actions:
+Remove unused UI components - Keep only: badge.tsx, button.tsx, card.tsx, dialog.tsx, dropdown-menu.tsx, input.tsx, label.tsx, navigation-menu.tsx, select.tsx, separator.tsx, sidebar.tsx, tabs.tsx
+
+Clean up server duplicates - Remove the duplicate files in server root
+
+Archive attached_assets - Move to a separate documentation folder or delete
+
+Remove unused dependencies - This will significantly reduce bundle size
+
+Remove unused server modules - Clean up the server directory
