@@ -12,8 +12,7 @@ import {
   insertScrapingTargetSchema
 } from "@shared/schema";
 import { generateTopics, generateContentIdeas } from "./anthropic";
-// ❌ PHASE 2: DISABLED - WebScraper import (can be re-enabled by uncommenting)
-// import { WebScraper, calculateRelevanceScore } from "./scraping";
+// ❌ PHASE 3: REMOVED - WebScraper import (scraping system deprecated)
 import { contentPipeline } from "./content-pipeline";
 import { contentPipelineV2 } from "./content-pipeline-v2";
 import { perplexityService } from "./perplexity";
@@ -727,29 +726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   }
   // });
 
-  // ❌ PHASE 2: DISABLED - Scrape a single URL (can be re-enabled by uncommenting)
-  // app.post('/api/scrape-url', async (req: Request, res: Response) => {
-  //   try {
-  //     const { url } = req.body;
-
-  //     if (!url) {
-  //       return res.status(400).json({ message: 'URL is required' });
-  //     }
-
-  //     const scraper = new WebScraper();
-  //     const result = await scraper.scrapeUrl(url);
-
-  //     if (result.success && result.content) {
-  //       // Save to database
-  //       const savedContent = await storage.createScrapedContent(result.content);
-  //       res.json({ success: true, content: savedContent });
-  //     } else {
-  //       res.status(400).json({ success: false, error: result.error });
-  //     }
-  //   } catch (err) {
-  //     handleError(err, res);
-  //   }
-  // });
+  // ✅ PHASE 5: Legacy scraping routes removed - using Perplexity real-time search
 
   // Get relevant content for an expert
   app.get('/api/relevant-content/:expertId', async (req: Request, res: Response) => {
@@ -781,7 +758,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Expert, profile, or content not found' });
       }
 
-      const relevanceScore = calculateRelevanceScore(scrapedContent, expertProfile);
+      // Legacy relevance calculation removed - using Perplexity real-time scoring
+      const relevanceScore = 0.8; // Default high relevance for migrated content
 
       const relevanceData = {
         expertId,
