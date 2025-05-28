@@ -1,6 +1,6 @@
 import { perplexityService } from './services/perplexity';
 import { storage } from './storage';
-import { generateContentIdeas } from './anthropic';
+import { generateContentIdeas } from './anthropic-fixed';
 
 export interface ContentPipelineV2Result {
   ideas: Array<{
