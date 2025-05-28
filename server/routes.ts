@@ -413,56 +413,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { expertId } = req.body;
 
       if (!expertId) {
-        return res.status(400).json({ message: 'Expert ID is required for scraping-first topic generation' });
+        return res.status(400).json({ message: 'Expert ID is required for topic generation' });
       }
 
-      // BOOTSTRAP-FIRST ENFORCEMENT: Trigger bootstrap if no content exists
-      let contentCount = await storage.getContentCountForExpert(expertId);
-      console.log(`[TOPIC-GEN] Expert ${expertId} has ${contentCount} content pieces`);
-
-      if (contentCount === 0) {
-        console.log(`[TOPIC-GEN] Triggering bootstrap for expert ${expertId}`);
-
-        // Use imported content pipeline for bootstrap
-
-        try {
-          // Create a temporary bootstrap topic for scraping purposes
-          const bootstrapTopic = await storage.createTopic({
-            expertId,
-            title: 'Bootstrap Content Gathering',
-            description: 'Temporary topic used for initial content scraping',
-            category: 'Bootstrap',
-            tags: ['bootstrap', 'setup']
-          });
-
-          // Use the bootstrap topic to trigger content scraping
-          const bootstrapResult = await contentPipeline.generateContentWithScraping({
-            topicId: bootstrapTopic.id,
-            platform: 'linkedin',
-            expertId
-          });
-
-          // Clean up the bootstrap topic
-          await storage.deleteTopic(bootstrapTopic.id);
-
-          // Recheck content count after bootstrap
-          contentCount = await storage.getContentCountForExpert(expertId);
-          console.log(`[TOPIC-GEN] After bootstrap: ${contentCount} content pieces`);
-
-        } catch (bootstrapError) {
-          console.error('[TOPIC-GEN] Bootstrap failed:', bootstrapError);
-          return res.status(400).json({ 
-            message: 'Cannot generate topics without authentic sources. Bootstrap attempt failed. Please check your information sources configuration.' 
-          });
-        }
-      }
-
-      // Final validation after potential bootstrap
-      if (contentCount === 0) {
-        return res.status(400).json({ 
-          message: 'Cannot generate topics without authentic sources. Please ensure your profile has valid information sources and try again.' 
-        });
-      }
+      console.log(`[PERPLEXITY-TOPICS] Generating topics for expert ${expertId} using real-time search`);
 
       // Get expert profile
       const profile = await storage.getExpertProfile(parseInt(expertId));
@@ -471,7 +425,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Expert profile not found' });
       }
 
-      // Generate topics using Anthropic with scraped content context
+      // Use Perplexity to get real-time industry insights for topic generation
+      const { getPerplexityResearch } = await import('./anthropic');
+      
+      // Create search query for current trends in expert's field
+      const searchQuery = `Latest trends and emerging topics in ${profile.primaryExpertise} industry for ${new Date().getFullYear()}`;
+      
+      let additionalContext = '';
+      try {
+        console.log('[PERPLEXITY-TOPICS] Searching for current industry trends...');
+        additionalContext = await getPerplexityResearch(searchQuery, { recency: 'week' });
+        console.log('[PERPLEXITY-TOPICS] Real-time context acquired successfully');
+      } catch (perplexityError) {
+        console.log('[PERPLEXITY-TOPICS] Perplexity unavailable, using expert profile only');
+        // Continue without Perplexity context if service is unavailable
+      }
+
+      // Generate topics using Anthropic with real-time industry context
       const topics = await generateTopics({
         primaryExpertise: profile.primaryExpertise || '',
         secondaryExpertise: profile.secondaryExpertise || [],
@@ -481,7 +451,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         platforms: profile.platforms || [],
         targetAudience: profile.targetAudience || '',
         contentGoals: profile.contentGoals || [],
-        count: req.body.count || 3
+        count: req.body.count || 3,
+        additionalContext // Pass real-time industry context to enhance topic relevance
       });
 
       // Save topics and viewpoints to storage
