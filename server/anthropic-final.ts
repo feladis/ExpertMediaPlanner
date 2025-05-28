@@ -5,6 +5,48 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 
+// Função para buscar inteligência de mercado em tempo real
+async function getMarketIntelligence(params: TopicGenerationParams): Promise<string> {
+  const searchQuery = `${params.primaryExpertise} trends challenges opportunities ${params.expertiseKeywords.join(' ')} last 7 days`;
+  
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-sonar-small-128k-online',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a market research analyst. Provide current insights from the last 7 days about trends, challenges, and opportunities in the specified field. Be concise and focus on actionable intelligence.'
+          },
+          {
+            role: 'user',
+            content: `Research current market intelligence for: ${searchQuery}`
+          }
+        ],
+        max_tokens: 1500,
+        temperature: 0.2,
+        search_recency_filter: 'week'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Perplexity API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || 'No current market intelligence available.';
+    
+  } catch (error) {
+    console.error('Market intelligence fetch failed:', error);
+    return `Current market context for ${params.primaryExpertise} based on general trends and industry knowledge.`;
+  }
+}
+
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'default-key',
@@ -85,11 +127,17 @@ Output Format - JSON array with exactly this structure:
 
 Generate exactly ${count} topics. Each topic must directly reference and build upon the market intelligence provided.`;
 
-  console.log(`🎯 Generating topics for ${params.primaryExpertise} expert`);
+  console.log(`🎯 Generating topics for ${params.primaryExpertise} expert with real market intelligence`);
 
-  // Para agora, usar dados do perfil do expert diretamente
-  // TODO: Integrar com Master Perplexity Service quando chave API estiver disponível
-  const userPrompt = `Based on expert profile and current market context:
+  // Usar pesquisa real de mercado com Perplexity
+  const marketResearch = await getMarketIntelligence(params);
+  
+  const userPrompt = `Based on expert profile and REAL market intelligence from the last 7 days:
+
+CURRENT MARKET INTELLIGENCE:
+${marketResearch}
+
+Expert Profile Context:
 
 Expert Profile Context:
 - Primary expertise: ${params.primaryExpertise}
