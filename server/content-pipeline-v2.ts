@@ -90,7 +90,17 @@ export class ContentPipelineV2 {
           keyPoints: idea.keyPoints,
           sources: searchResult.sources?.slice(0, 3) || [] // Maximum 3 sources
         });
-        savedIdeas.push(saved);
+        
+        // Transform to match expected format
+        savedIdeas.push({
+          id: saved.id,
+          title: saved.title,
+          description: saved.description,
+          format: saved.format,
+          keyPoints: saved.keyPoints || [],
+          sources: saved.sources || [],
+          platform: saved.platform
+        });
       }
 
       const processingTime = Date.now() - startTime;
