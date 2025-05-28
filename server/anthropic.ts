@@ -1,6 +1,9 @@
+/**
+ * Anthropic Service - Clean Implementation
+ * Consome dados do cache e gera tópicos estratégicos
+ */
+
 import Anthropic from '@anthropic-ai/sdk';
-import { storage } from './storage';
-import { ExpertProfile, ScrapedContent } from '@shared/schema';
 import { masterPerplexityService } from './services/master-perplexity-clean';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
