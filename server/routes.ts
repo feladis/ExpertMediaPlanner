@@ -299,6 +299,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Topic Generation API - SCRAPING-FIRST WORKFLOW WITH BOOTSTRAP
+  app.post('/api/topics/generate/:expertId', async (req: Request, res: Response) => {
+    const expertId = parseInt(req.params.expertId);
+    req.body.expertId = expertId;
+    
+    // Continue with the same logic as the main generate-topics endpoint
+    try {
+      if (!expertId) {
+        return res.status(400).json({ message: 'Expert ID is required for scraping-first topic generation' });
+      }
+
+      // BOOTSTRAP-FIRST ENFORCEMENT: Trigger bootstrap if no content exists
+      let contentCount = await storage.getContentCountForExpert(expertId);
+      console.log(`[TOPIC-GEN] Expert ${expertId} has ${contentCount} content pieces`);
+
+      if (contentCount === 0) {
+        console.log(`[TOPIC-GEN] Triggering bootstrap for expert ${expertId}`);
+
+        try {
+          // Create a temporary bootstrap topic for scraping purposes
+          const bootstrapTopic = await storage.createTopic({
+            expertId,
+            title: 'Bootstrap Content Gathering',
+            description: 'Temporary topic used for initial content scraping',
+            category: 'Bootstrap',
+            tags: ['bootstrap', 'setup']
+          });
+
+          // Use the bootstrap topic to trigger content scraping
+          const bootstrapResult = await contentPipeline.generateContentWithScraping({
+            topicId: bootstrapTopic.id,
+            platform: 'linkedin',
+            expertId
+          });
+
+          // Clean up the bootstrap topic
+          await storage.deleteTopic(bootstrapTopic.id);
+
+          // Recheck content count after bootstrap
+          contentCount = await storage.getContentCountForExpert(expertId);
+          console.log(`[TOPIC-GEN] After bootstrap: ${contentCount} content pieces`);
+
+        } catch (bootstrapError) {
+          console.error('[TOPIC-GEN] Bootstrap failed:', bootstrapError);
+          return res.status(400).json({ 
+            message: 'Cannot generate topics without authentic sources. Bootstrap attempt failed. Please check your information sources configuration.' 
+          });
+        }
+      }
+
+      // Final validation after potential bootstrap
+      if (contentCount === 0) {
+        return res.status(400).json({ 
+          message: 'Cannot generate topics without authentic sources. Please ensure your profile has valid information sources and try again.' 
+        });
+      }
+
+      // Get expert profile
+      const profile = await storage.getExpertProfile(expertId);
+
+      if (!profile) {
+        return res.status(404).json({ message: 'Expert profile not found' });
+      }
+
+      // Generate topics using Anthropic with scraped content context
+      const topics = await generateTopics({
+        primaryExpertise: profile.primaryExpertise || '',
+        secondaryExpertise: profile.secondaryExpertise || [],
+        expertiseKeywords: profile.expertiseKeywords || [],
+        voiceTone: profile.voiceTone || [],
+        personalBranding: profile.personalBranding || '',
+        platforms: profile.platforms || [],
+        targetAudience: profile.targetAudience || '',
+        contentGoals: profile.contentGoals || [],
+        count: req.body.count || 3
+      });
+
+      // Save topics and viewpoints to storage
+      const savedTopics = [];
+
+      for (const topic of topics) {
+        const newTopic = await storage.createTopic({
+          expertId: expertId,
+          title: topic.title,
+          description: topic.description,
+          category: topic.category,
+          tags: topic.tags
+        });
+
+        // Create viewpoints for the topic
+        if (topic.viewpoints && topic.viewpoints.length > 0) {
+          for (const viewpoint of topic.viewpoints) {
+            await storage.createViewpoint({
+              topicId: newTopic.id,
+              title: viewpoint.title,
+              description: viewpoint.description
+            });
+          }
+        }
+
+        savedTopics.push(newTopic);
+      }
+
+      res.status(201).json(savedTopics);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
   app.post('/api/generate-topics', async (req: Request, res: Response) => {
     try {
       const { expertId } = req.body;
