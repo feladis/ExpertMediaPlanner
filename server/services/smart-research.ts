@@ -88,7 +88,7 @@ export class SmartResearchService {
     const synthesis = this.synthesizeFindings(processedResults, params);
 
     // Remove duplicate sources and validate
-    const uniqueSources = [...new Set(allSources)];
+    const uniqueSources = Array.from(new Set(allSources));
     const validatedSources = await this.validateAndRankSources(uniqueSources);
 
     const finalQuality = totalQuality / successfulSearches;

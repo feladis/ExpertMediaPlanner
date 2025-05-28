@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { smartResearchService } from './services/smart-research';
 import { researchCacheService } from './services/research-cache';
+import { storage } from './storage';
 
 /**
  * Register comprehensive research intelligence routes

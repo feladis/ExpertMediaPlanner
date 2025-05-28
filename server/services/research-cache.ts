@@ -177,7 +177,7 @@ export class ResearchCacheService {
       .where(
         and(
           eq(researchCache.isValid, true),
-          gt(now, researchCache.expiresAt)
+          lt(researchCache.expiresAt, now)
         )
       );
 
