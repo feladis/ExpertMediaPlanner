@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { storage } from './storage';
 import { ExpertProfile, ScrapedContent } from '@shared/schema';
-import { perplexityMasterService } from './services/perplexity-master';
+import { masterPerplexityService } from './services/master-perplexity-clean';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
@@ -167,14 +167,14 @@ Your response MUST be formatted as a valid JSON object with this structure:
   ]
 }`;
 
-    // CLEAN ARCHITECTURE: Master Perplexity + Anthropic Integration
+    // CLEAN ARCHITECTURE: Master Perplexity → Cache → Anthropic
     const expertId = 1; // TODO: Pass this from the calling function
     
     console.log(`🎯 Generating topics for ${params.primaryExpertise} expert using clean architecture`);
     
     try {
       // 1. MASTER PERPLEXITY: Verificar cache e executar pesquisa se necessário
-      const researchResult = await perplexityMasterService.conductExpertResearch(expertId);
+      const researchResult = await masterPerplexityService.conductExpertResearch(expertId);
       
       console.log(`📊 Research ready - Quality: ${researchResult.qualityScore}%, Sources: ${researchResult.sources.length}`);
 
@@ -200,8 +200,31 @@ Expert Profile Context:
 
 Generate strategic content topics that translate this market intelligence into actionable content opportunities for this expert's positioning and goals.`;
 
+    const response = await anthropic.messages.create({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 3000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+    });
+
+    const responseText = response.content[0]?.text || '';
+    console.log(`✅ Topics generated successfully`);
+
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      return parsedResponse.topics || [];
+    } catch (parseError) {
+      console.error('Failed to parse Anthropic response:', parseError);
+      throw new Error('Failed to generate properly formatted topics');
+    }
+
     } catch (error) {
-      console.error('❌ Research execution failed:', error);
+      console.error('❌ Topic generation failed:', error);
       throw new Error(`Unable to generate topics: ${error.message}`);
     }
 
