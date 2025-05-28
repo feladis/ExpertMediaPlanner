@@ -758,6 +758,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Register Perplexity routes
+  registerPerplexityRoutes(app);
+
+  // Register comprehensive monitoring and optimization routes  
+  registerMonitoringRoutes(app);
+
   const httpServer = createServer(app);
   return httpServer;
 }
