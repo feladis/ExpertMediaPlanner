@@ -52,6 +52,37 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'default-key',
 });
 
+/**
+ * Robust JSON extraction and cleaning function
+ * Handles various response formats from Anthropic API
+ */
+function extractAndCleanJSON(text: string): string {
+  let cleaned = text.trim();
+  
+  // Remove markdown code blocks
+  cleaned = cleaned
+    .replace(/^```(?:json|JSON)?\s*/gm, '')
+    .replace(/\s*```\s*$/gm, '')
+    .replace(/^`+/gm, '')
+    .replace(/`+$/gm, '')
+    .trim();
+  
+  // Extract JSON object if wrapped in text
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    cleaned = jsonMatch[0];
+  }
+  
+  // Additional cleanup for common formatting issues
+  cleaned = cleaned
+    .replace(/\\n/g, '\n')
+    .replace(/\\"/g, '"')
+    .replace(/\n\s*\n/g, '\n')
+    .trim();
+  
+  return cleaned;
+}
+
 export interface TopicGenerationParams {
   primaryExpertise: string;
   secondaryExpertise: string[];
@@ -166,31 +197,38 @@ Generate strategic content topics that align with this expert's positioning and 
 
     const responseText = response.content[0]?.type === 'text' ? response.content[0].text : '';
     console.log(`✅ Topics generated successfully`);
+    console.log('DEBUG - Raw Anthropic response:', responseText.substring(0, 200));
 
     try {
-      // Clean the response by removing markdown code blocks if present
-      let cleanedResponse = responseText.trim();
+      // Robust JSON extraction and parsing
+      let cleaned = responseText.trim();
       
-      // Remove various markdown code block patterns
-      cleanedResponse = cleanedResponse
-        .replace(/^```(?:json)?\s*/gm, '')  // Remove opening ```json or ``` at start of lines
-        .replace(/\s*```\s*$/gm, '')        // Remove closing ``` at end of lines
-        .replace(/^`{1,3}/gm, '')           // Remove any remaining backticks at start of lines
-        .replace(/`{1,3}$/gm, '')           // Remove any remaining backticks at end of lines
+      // Remove markdown code blocks
+      cleaned = cleaned
+        .replace(/^```(?:json|JSON)?\s*/gm, '')
+        .replace(/\s*```\s*$/gm, '')
+        .replace(/^`+/gm, '')
+        .replace(/`+$/gm, '')
         .trim();
       
-      // Try to find JSON content if wrapped in other text
-      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      // Extract JSON object if wrapped in text
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        cleanedResponse = jsonMatch[0];
+        cleaned = jsonMatch[0];
       }
       
-      const parsedResponse = JSON.parse(cleanedResponse);
+      // Additional cleanup for common formatting issues
+      cleaned = cleaned
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+      
+      const parsedResponse = JSON.parse(cleaned);
       return parsedResponse.topics || [];
     } catch (parseError) {
       console.error('Failed to parse Anthropic response:', parseError);
       console.error('Raw response text:', responseText.substring(0, 500));
-      console.error('Cleaned response text:', cleanedResponse?.substring(0, 500));
       throw new Error('Failed to generate properly formatted topics');
     }
 
@@ -249,29 +287,35 @@ Generate content ideas that leverage these elements effectively.`;
     const responseText = response.content[0]?.type === 'text' ? response.content[0].text : '';
     
     try {
-      // Clean the response by removing markdown code blocks if present
-      let cleanedResponse = responseText.trim();
+      // Robust JSON extraction and parsing
+      let cleaned = responseText.trim();
       
-      // Remove various markdown code block patterns
-      cleanedResponse = cleanedResponse
-        .replace(/^```(?:json)?\s*/gm, '')  // Remove opening ```json or ``` at start of lines
-        .replace(/\s*```\s*$/gm, '')        // Remove closing ``` at end of lines
-        .replace(/^`{1,3}/gm, '')           // Remove any remaining backticks at start of lines
-        .replace(/`{1,3}$/gm, '')           // Remove any remaining backticks at end of lines
+      // Remove markdown code blocks
+      cleaned = cleaned
+        .replace(/^```(?:json|JSON)?\s*/gm, '')
+        .replace(/\s*```\s*$/gm, '')
+        .replace(/^`+/gm, '')
+        .replace(/`+$/gm, '')
         .trim();
       
-      // Try to find JSON content if wrapped in other text
-      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      // Extract JSON object if wrapped in text
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        cleanedResponse = jsonMatch[0];
+        cleaned = jsonMatch[0];
       }
       
-      const parsedResponse = JSON.parse(cleanedResponse);
+      // Additional cleanup for common formatting issues
+      cleaned = cleaned
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+      
+      const parsedResponse = JSON.parse(cleaned);
       return parsedResponse.ideas || [];
     } catch (parseError) {
       console.error('Failed to parse content ideas response:', parseError);
       console.error('Raw response text:', responseText.substring(0, 500));
-      console.error('Cleaned response text:', cleanedResponse?.substring(0, 500));
       throw new Error('Failed to generate properly formatted content ideas');
     }
 
