@@ -168,10 +168,17 @@ Generate strategic content topics that align with this expert's positioning and 
     console.log(`✅ Topics generated successfully`);
 
     try {
-      const parsedResponse = JSON.parse(responseText);
+      // Clean the response by removing markdown code blocks if present
+      const cleanedResponse = responseText
+        .replace(/^```json\s*/, '')  // Remove opening ```json
+        .replace(/\s*```$/, '')      // Remove closing ```
+        .trim();
+      
+      const parsedResponse = JSON.parse(cleanedResponse);
       return parsedResponse.topics || [];
     } catch (parseError) {
       console.error('Failed to parse Anthropic response:', parseError);
+      console.error('Raw response text:', responseText.substring(0, 500));
       throw new Error('Failed to generate properly formatted topics');
     }
 
