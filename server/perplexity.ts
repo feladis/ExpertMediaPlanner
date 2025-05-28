@@ -130,11 +130,11 @@ class AdvancedRateLimiter {
   }
 }
 
-// Contextual Search Builder as recommended
-class ContextualSearchBuilder {
+// PHASE 2: Advanced Contextual Search Builder with Expert-Profile Intelligence
+class AdvancedContextualSearchBuilder {
   buildSearchParams(expertProfile: ExpertProfile, contentType: string): SearchContext {
-    const domainFilters = this.getDomainFiltersForExpertise(expertProfile.primaryExpertise || '');
-    const recencyFilter = this.getRecencyForContentType(contentType);
+    const domainFilters = this.buildExpertSpecificDomains(expertProfile);
+    const recencyFilter = this.getIntelligentRecencyFilter(contentType, expertProfile);
 
     return {
       domainFilters,
@@ -145,115 +145,318 @@ class ContextualSearchBuilder {
     };
   }
 
-  private getDomainFiltersForExpertise(expertise: string): string[] {
-    const domainMap: Record<string, string[]> = {
-      'technology': ['stackoverflow.com', 'github.com', 'techcrunch.com', 'hbr.org', '-reddit.com'],
-      'healthcare': ['pubmed.ncbi.nlm.nih.gov', 'who.int', 'cdc.gov', 'hbr.org', '-pinterest.com'],
-      'finance': ['sec.gov', 'reuters.com', 'bloomberg.com', 'hbr.org', '-reddit.com'],
-      'science': ['nature.com', 'science.org', 'arxiv.org', 'researchgate.net', 'hbr.org'],
-      'business': ['hbr.org', 'fastcompany.com', 'sloanreview.mit.edu', 'mckinsey.com', '-reddit.com'],
-      'marketing': ['hbr.org', 'fastcompany.com', 'marketingland.com', 'adage.com', '-pinterest.com'],
-      'leadership': ['hbr.org', 'fastcompany.com', 'sloanreview.mit.edu', 'forbes.com', '-linkedin.com'],
-      'content creation': ['hbr.org', 'fastcompany.com', 'contentmarketinginstitute.com', '-reddit.com']
-    };
-
-    // Default to trusted sources + expertise-specific domains
-    const expertiseDomains = domainMap[expertise.toLowerCase()] || [];
-    const trustedSources = ['hbr.org', 'fastcompany.com', 'sloanreview.mit.edu'];
+  // PHASE 2: Multi-dimensional domain filtering based on complete expert profile
+  private buildExpertSpecificDomains(expertProfile: ExpertProfile): string[] {
+    const primaryDomains = this.getPrimaryExpertiseDomains(expertProfile.primaryExpertise || '');
+    const secondaryDomains = this.getSecondaryExpertiseDomains(expertProfile.secondaryExpertise || []);
+    const platformDomains = this.getPlatformSpecificDomains(expertProfile.platforms || []);
+    const audienceDomains = this.getAudienceSpecificDomains(expertProfile.targetAudience || '');
     
-    return [...new Set([...expertiseDomains, ...trustedSources])];
+    // Core trusted sources (always included)
+    const coreTrustedSources = ['hbr.org', 'fastcompany.com', 'sloanreview.mit.edu'];
+    
+    // Combine and deduplicate
+    const allDomains = [
+      ...coreTrustedSources,
+      ...primaryDomains,
+      ...secondaryDomains,
+      ...platformDomains,
+      ...audienceDomains
+    ];
+    
+    return Array.from(new Set(allDomains));
   }
 
-  private getRecencyForContentType(contentType: string): string {
-    const recencyMap: Record<string, string> = {
-      'trending_topics': 'day',
-      'content_ideas': 'week',
-      'research': 'month',
-      'news': 'day'
+  private getPrimaryExpertiseDomains(expertise: string): string[] {
+    const expertiseDomainMap: Record<string, string[]> = {
+      // Technology & Innovation
+      'technology': ['techcrunch.com', 'wired.com', 'arstechnica.com', 'theverge.com', 'ieee.org'],
+      'artificial intelligence': ['openai.com', 'deepmind.com', 'ai.google', 'research.microsoft.com'],
+      'cybersecurity': ['krebsonsecurity.com', 'darkreading.com', 'securelist.com', 'csoonline.com'],
+      'software development': ['stackoverflow.com', 'github.com', 'dev.to', 'medium.com'],
+      
+      // Business & Management  
+      'business': ['mckinsey.com', 'bcg.com', 'deloitte.com', 'pwc.com', 'accenture.com'],
+      'leadership': ['leadershipnow.com', 'ccl.org', 'centerforleadership.org'],
+      'strategy': ['strategybusiness.pwc.com', 'strategy-business.com'],
+      'entrepreneurship': ['inc.com', 'entrepreneur.com', 'techstars.com'],
+      
+      // Finance & Economics
+      'finance': ['reuters.com', 'bloomberg.com', 'ft.com', 'wsj.com', 'sec.gov'],
+      'investment': ['morningstar.com', 'fool.com', 'seekingalpha.com'],
+      'cryptocurrency': ['coindesk.com', 'cointelegraph.com'],
+      
+      // Healthcare & Life Sciences
+      'healthcare': ['nejm.org', 'who.int', 'cdc.gov', 'pubmed.ncbi.nlm.nih.gov'],
+      'biotechnology': ['nature.com', 'cell.com', 'sciencemag.org'],
+      'pharmaceuticals': ['pharmatimes.com', 'fiercepharma.com'],
+      
+      // Marketing & Communications
+      'marketing': ['marketingland.com', 'adage.com', 'contentmarketinginstitute.com'],
+      'digital marketing': ['searchengineland.com', 'socialmediaexaminer.com'],
+      'brand management': ['brandingmag.com', 'campaignlive.com'],
+      
+      // Science & Research
+      'science': ['nature.com', 'science.org', 'pnas.org', 'cell.com'],
+      'research': ['researchgate.net', 'scholar.google.com'],
+      
+      // Education & Training
+      'education': ['edutopia.org', 'chronicle.com', 'insidehighered.com'],
+      'training': ['trainingindustry.com', 'td.org'],
+      
+      // Sustainability & Environment
+      'sustainability': ['greenbiz.com', 'sustainablebrands.com', 'triplepundit.com'],
+      'environment': ['epa.gov', 'unep.org', 'climatecentral.org']
     };
 
-    return recencyMap[contentType] || 'week';
+    return expertiseDomainMap[expertise.toLowerCase()] || [];
+  }
+
+  private getSecondaryExpertiseDomains(secondaryExpertise: string[]): string[] {
+    const domains: string[] = [];
+    
+    secondaryExpertise.forEach(expertise => {
+      domains.push(...this.getPrimaryExpertiseDomains(expertise));
+    });
+    
+    return domains;
+  }
+
+  private getPlatformSpecificDomains(platforms: string[]): string[] {
+    const platformDomainMap: Record<string, string[]> = {
+      'linkedin': ['linkedin.com', 'business.linkedin.com'],
+      'twitter': ['blog.twitter.com', 'business.twitter.com'],
+      'instagram': ['business.instagram.com', 'creators.instagram.com'],
+      'youtube': ['creatoracademy.youtube.com', 'blog.youtube'],
+      'tiktok': ['newsroom.tiktok.com', 'business.tiktok.com'],
+      'facebook': ['business.facebook.com', 'about.fb.com']
+    };
+
+    const domains: string[] = [];
+    platforms.forEach(platform => {
+      const platformDomains = platformDomainMap[platform.toLowerCase()];
+      if (platformDomains) {
+        domains.push(...platformDomains);
+      }
+    });
+    
+    return domains;
+  }
+
+  private getAudienceSpecificDomains(targetAudience: string): string[] {
+    const audienceDomainMap: Record<string, string[]> = {
+      'executives': ['mckinsey.com', 'bcg.com', 'hbr.org', 'strategy-business.com'],
+      'entrepreneurs': ['inc.com', 'entrepreneur.com', 'forbes.com'],
+      'professionals': ['linkedin.com', 'glassdoor.com', 'indeed.com'],
+      'students': ['edutopia.org', 'chronicle.com', 'insidehighered.com'],
+      'researchers': ['researchgate.net', 'academia.edu', 'scholar.google.com'],
+      'developers': ['stackoverflow.com', 'github.com', 'dev.to'],
+      'marketers': ['marketingland.com', 'adage.com', 'campaignlive.com']
+    };
+
+    const audienceKey = Object.keys(audienceDomainMap).find(key => 
+      targetAudience.toLowerCase().includes(key)
+    );
+    
+    return audienceKey ? audienceDomainMap[audienceKey] : [];
+  }
+
+  // PHASE 2: Intelligent recency filtering based on content type and expertise
+  private getIntelligentRecencyFilter(contentType: string, expertProfile: ExpertProfile): string {
+    const expertise = expertProfile.primaryExpertise?.toLowerCase() || '';
+    
+    // Fast-moving fields need more recent content
+    const fastMovingFields = ['technology', 'artificial intelligence', 'cryptocurrency', 'digital marketing'];
+    const isFastMoving = fastMovingFields.some(field => expertise.includes(field));
+    
+    const recencyMap: Record<string, string> = {
+      'trending_topics': isFastMoving ? 'day' : 'week',
+      'content_ideas': isFastMoving ? 'week' : 'month',
+      'research': 'month',
+      'news': 'day',
+      'analysis': isFastMoving ? 'week' : 'month'
+    };
+
+    return recencyMap[contentType] || (isFastMoving ? 'week' : 'month');
   }
 }
 
-// Advanced Prompt Builder as recommended
-class AdvancedPromptBuilder {
+// PHASE 2: Intelligent Model Selection & Advanced Prompt Builder
+class IntelligentModelSelector {
+  selectOptimalModel(contentType: string, expertProfile: ExpertProfile, complexity: 'simple' | 'medium' | 'complex'): string {
+    // PHASE 2: Intelligent model selection based on content requirements
+    const expertise = expertProfile.primaryExpertise?.toLowerCase() || '';
+    
+    // Technical fields benefit from larger models for accuracy
+    const technicalFields = ['technology', 'artificial intelligence', 'science', 'research', 'finance'];
+    const isTechnical = technicalFields.some(field => expertise.includes(field));
+    
+    // Content complexity determines model size
+    if (complexity === 'complex' || isTechnical) {
+      return 'llama-3.1-sonar-large-128k-online';  // Most capable for complex analysis
+    } else if (complexity === 'medium' || contentType === 'trending_topics') {
+      return 'llama-3.1-sonar-small-128k-online';  // Balanced for standard tasks
+    } else {
+      return 'llama-3.1-sonar-small-128k-online';  // Efficient for simple tasks
+    }
+  }
+  
+  determineContentComplexity(contentType: string, expertProfile: ExpertProfile): 'simple' | 'medium' | 'complex' {
+    const expertise = expertProfile.primaryExpertise?.toLowerCase() || '';
+    const platforms = expertProfile.platforms || [];
+    
+    // Technical expertise requires more complex analysis
+    const complexFields = ['artificial intelligence', 'biotechnology', 'finance', 'research'];
+    const isComplexField = complexFields.some(field => expertise.includes(field));
+    
+    // Long-form platforms need more detailed content
+    const longFormPlatforms = ['linkedin', 'blog', 'medium'];
+    const isLongForm = platforms.some(platform => longFormPlatforms.includes(platform.toLowerCase()));
+    
+    if (isComplexField && isLongForm) {
+      return 'complex';
+    } else if (isComplexField || isLongForm || contentType === 'research') {
+      return 'medium';
+    } else {
+      return 'simple';
+    }
+  }
+}
+
+// PHASE 2: Context-Aware Advanced Prompt Builder
+class ContextAwarePromptBuilder {
   buildTopicGenerationPrompt(expertProfile: ExpertProfile): string {
+    const expertise = expertProfile.primaryExpertise || 'business';
+    const secondaryAreas = (expertProfile.secondaryExpertise || []).slice(0, 3).join(', ');
+    const voiceTone = (expertProfile.voiceTone || []).join(', ') || 'professional';
+    const platforms = (expertProfile.platforms || []).join(', ') || 'LinkedIn';
+    const audience = expertProfile.targetAudience || 'professionals';
+    const keywords = (expertProfile.expertiseKeywords || []).slice(0, 5).join(', ');
+
     return `
-ROLE: Expert Content Strategist specializing in ${expertProfile.primaryExpertise}
+EXPERT CONTENT STRATEGIST ROLE:
+Specialization: ${expertise}
+${secondaryAreas ? `Secondary Areas: ${secondaryAreas}` : ''}
+Target Audience: ${audience}
+Voice Style: ${voiceTone}
+Primary Platforms: ${platforms}
+${keywords ? `Key Expertise Keywords: ${keywords}` : ''}
 
-CONTEXT:
-- Primary Expertise: ${expertProfile.primaryExpertise}
-- Target Audience: ${expertProfile.targetAudience}
-- Voice Tone: ${(expertProfile.voiceTone || []).join(', ')}
-- Content Platforms: ${(expertProfile.platforms || []).join(', ')}
+SEARCH STRATEGY:
+1. Prioritize authoritative industry sources and recent developments
+2. Focus on ${expertise} trends and breakthrough insights
+3. Look for data-driven analysis and expert commentary
+4. Exclude opinion pieces without credible backing
+5. Emphasize actionable insights for ${audience}
 
-SEARCH INSTRUCTIONS:
-1. Focus on information published within the last 7 days
-2. Prioritize authoritative sources in ${expertProfile.primaryExpertise}
-3. Look for trending discussions, breakthrough announcements, or industry shifts
-4. Exclude social media opinions and focus on factual reporting
+CONTENT DISCOVERY MISSION:
+Generate 3 trending topics that demonstrate thought leadership in ${expertise}:
 
-TASK:
-Generate 3 highly relevant content topics that are:
-- Currently trending (cite specific recent events/data)
-- Aligned with expert's specialization
-- Engaging for target audience
-- Suitable for ${(expertProfile.platforms || ['LinkedIn'])[0]} format
+REQUIREMENTS for each topic:
+- Compelling, expertise-driven headline (6-10 words)
+- Strategic description with clear value proposition
+- Current trend catalyst (specific event, study, or data point)
+- Professional relevance to ${audience}
+- Optimal format for ${platforms.split(',')[0] || 'LinkedIn'}
 
-OUTPUT FORMAT:
-For each topic, provide:
-1. Compelling title (6-8 words)
-2. Brief description with hook angle
-3. Recent trend trigger (specific event/statistic with date)
-4. 3 authoritative sources with publication dates
-5. Engagement potential score (1-10) with justification
+OUTPUT STRUCTURE:
+For each topic provide:
+1. **Title**: [Engaging headline focusing on ${expertise}]
+2. **Hook**: [Why this matters to ${audience} right now]
+3. **Trend Driver**: [Specific recent development with date]
+4. **Value Angle**: [Unique insight or perspective]
+5. **Engagement Factor**: [Why this will resonate with your audience]
 
-Ensure all information is current and cite sources with URLs.`;
+Focus exclusively on authentic, source-backed content that positions you as a thought leader.`;
   }
 
   buildContentIdeaPrompt(topic: string, expertProfile: ExpertProfile, platform: string): string {
+    const expertise = expertProfile.primaryExpertise || 'business';
+    const voiceTone = (expertProfile.voiceTone || []).join(', ') || 'professional';
+    const audience = expertProfile.targetAudience || 'professionals';
+    const goals = (expertProfile.contentGoals || []).slice(0, 3).join(', ');
+    const keywords = (expertProfile.expertiseKeywords || []).slice(0, 5).join(', ');
+
     return `
-ROLE: Expert Content Creator specializing in ${expertProfile.primaryExpertise}
+EXPERT CONTENT CREATOR BRIEF:
+Expertise: ${expertise}
+Topic Focus: "${topic}"
+Platform: ${platform}
+Voice & Tone: ${voiceTone}
+Target Audience: ${audience}
+${goals ? `Content Goals: ${goals}` : ''}
+${keywords ? `Focus Keywords: ${keywords}` : ''}
 
-CONTEXT:
-- Topic: ${topic}
-- Platform: ${platform}
-- Expert Voice: ${(expertProfile.voiceTone || []).join(', ')}
-- Target Audience: ${expertProfile.targetAudience}
+RESEARCH PARAMETERS:
+1. Search for cutting-edge insights on: ${topic}
+2. Prioritize recent authoritative analysis (last 30 days)
+3. Focus on actionable intelligence for ${audience}
+4. Look for data, case studies, and expert perspectives
+5. Identify unique angles that demonstrate ${expertise} expertise
 
-SEARCH INSTRUCTIONS:
-1. Find recent, authoritative content related to: ${topic}
-2. Focus on sources from last 30 days
-3. Prioritize expert insights, data, and actionable advice
-4. Look for unique angles and fresh perspectives
+${platform.toLowerCase()}-OPTIMIZED CONTENT MISSION:
+Create 3 high-impact content ideas that establish thought leadership:
 
-TASK:
-Generate 3 content ideas for ${platform} about ${topic} that:
-- Reference recent developments or data
-- Provide actionable insights
-- Match expert's voice and expertise
-- Engage the target audience
+PLATFORM-SPECIFIC REQUIREMENTS:
+${this.getPlatformGuidelines(platform)}
 
-OUTPUT FORMAT:
-For each content idea:
-1. Compelling headline
-2. Key points (3-5 bullet points)
-3. Call-to-action suggestion
-4. Supporting sources with URLs and dates
-5. Platform-specific formatting recommendations
+OUTPUT FORMAT for each idea:
+1. **Headline**: [${platform}-optimized, attention-grabbing title]
+2. **Value Proposition**: [Clear benefit for ${audience}]
+3. **Key Insights**: [3-4 actionable takeaways backed by research]
+4. **Expert Angle**: [Your unique ${expertise} perspective]
+5. **Engagement Hook**: [Question or statement to drive discussion]
+6. **Call-to-Action**: [Platform-appropriate next step]
+7. **Source Citations**: [Authoritative references with dates]
 
-Focus on authentic, source-backed content only.`;
+Ensure each idea demonstrates deep ${expertise} knowledge while being immediately actionable for ${audience}.`;
+  }
+
+  private getPlatformGuidelines(platform: string): string {
+    const guidelines: Record<string, string> = {
+      'linkedin': `
+- Professional tone with thought leadership positioning
+- Optimal length: 1-3 paragraphs + bullet points
+- Include relevant hashtags and mentions
+- Encourage professional discussion in comments`,
+      
+      'twitter': `
+- Concise, impactful messaging (280 characters)
+- Thread format for complex topics
+- Strong opening hook and clear value
+- Strategic use of hashtags and mentions`,
+      
+      'instagram': `
+- Visual-first approach with compelling captions
+- Story-driven content with personal insights
+- Use relevant hashtags for discovery
+- Encourage saves and shares`,
+      
+      'youtube': `
+- Educational video content with clear structure
+- Strong thumbnail and title optimization
+- Detailed description with timestamps
+- Call-to-action for subscriptions and engagement`,
+      
+      'tiktok': `
+- Short-form, engaging video content
+- Trending audio and hashtag integration
+- Quick value delivery in first 3 seconds
+- Educational but entertaining approach`
+    };
+
+    return guidelines[platform.toLowerCase()] || guidelines['linkedin'];
   }
 }
 
-// Main Perplexity Service
+// PHASE 2: Enhanced Perplexity Service with Intelligent Context
 export class PerplexityService {
   private apiKey: string;
   private baseUrl = 'https://api.perplexity.ai/chat/completions';
   private rateLimiter: AdvancedRateLimiter;
-  private searchBuilder: ContextualSearchBuilder;
-  private promptBuilder: AdvancedPromptBuilder;
+  private searchBuilder: AdvancedContextualSearchBuilder;
+  private promptBuilder: ContextAwarePromptBuilder;
+  private modelSelector: IntelligentModelSelector;
 
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY!;
@@ -262,32 +465,40 @@ export class PerplexityService {
     }
     
     this.rateLimiter = new AdvancedRateLimiter();
-    this.searchBuilder = new ContextualSearchBuilder();
-    this.promptBuilder = new AdvancedPromptBuilder();
+    this.searchBuilder = new AdvancedContextualSearchBuilder();
+    this.promptBuilder = new ContextAwarePromptBuilder();
+    this.modelSelector = new IntelligentModelSelector();
   }
 
+  // PHASE 2: Enhanced topic generation with intelligent model selection
   async generateTopicsWithIntelligentSearch(expertProfile: ExpertProfile): Promise<any> {
     const searchContext = this.searchBuilder.buildSearchParams(expertProfile, 'trending_topics');
+    const contentComplexity = this.modelSelector.determineContentComplexity('trending_topics', expertProfile);
+    const optimalModel = this.modelSelector.selectOptimalModel('trending_topics', expertProfile, contentComplexity);
     const prompt = this.promptBuilder.buildTopicGenerationPrompt(expertProfile);
 
     const request: PerplexityRequest = {
-      model: 'llama-3.1-sonar-small-128k-online',
+      model: optimalModel,
       messages: [
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 1500,
-      temperature: 0.3,
+      max_tokens: this.getOptimalTokenLimit(contentComplexity),
+      temperature: this.getOptimalTemperature('trending_topics'),
       search_domain_filter: searchContext.domainFilters,
       search_recency_filter: searchContext.recencyFilter,
       return_images: false,
-      return_related_questions: false
+      return_related_questions: false,
+      top_p: 0.9,
+      frequency_penalty: 0.1
     };
 
-    console.log(`[PERPLEXITY] Searching with domain filters: ${searchContext.domainFilters.join(', ')}`);
-    console.log(`[PERPLEXITY] Recency filter: ${searchContext.recencyFilter}`);
+    console.log(`[PERPLEXITY-PHASE2] Expert: ${expertProfile.primaryExpertise}`);
+    console.log(`[PERPLEXITY-PHASE2] Model: ${optimalModel} (${contentComplexity} complexity)`);
+    console.log(`[PERPLEXITY-PHASE2] Domains: ${searchContext.domainFilters.length} filtered sources`);
+    console.log(`[PERPLEXITY-PHASE2] Recency: ${searchContext.recencyFilter}`);
 
     return this.rateLimiter.executeWithRetry(async () => {
       const response = await fetch(this.baseUrl, {
@@ -305,41 +516,49 @@ export class PerplexityService {
 
       const data: PerplexityResponse = await response.json();
       
-      console.log(`[PERPLEXITY] Success! Used ${data.usage.total_tokens} tokens`);
-      if (data.citations) {
-        console.log(`[PERPLEXITY] Found ${data.citations.length} citations`);
-      }
+      console.log(`[PERPLEXITY-PHASE2] Success! Model: ${optimalModel}, Tokens: ${data.usage.total_tokens}`);
+      console.log(`[PERPLEXITY-PHASE2] Citations: ${data.citations?.length || 0} authoritative sources`);
 
       return data;
     });
   }
 
+  // PHASE 2: Enhanced content ideas generation with context-aware optimization
   async generateContentIdeasWithIntelligentSearch(
     topic: string, 
     expertProfile: ExpertProfile, 
     platform: string
   ): Promise<any> {
     const searchContext = this.searchBuilder.buildSearchParams(expertProfile, 'content_ideas');
+    const contentComplexity = this.modelSelector.determineContentComplexity('content_ideas', expertProfile);
+    const optimalModel = this.modelSelector.selectOptimalModel('content_ideas', expertProfile, contentComplexity);
     const prompt = this.promptBuilder.buildContentIdeaPrompt(topic, expertProfile, platform);
 
     const request: PerplexityRequest = {
-      model: 'llama-3.1-sonar-small-128k-online',
+      model: optimalModel,
       messages: [
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 2000,
-      temperature: 0.4,
+      max_tokens: this.getOptimalTokenLimit(contentComplexity),
+      temperature: this.getOptimalTemperature('content_ideas'),
       search_domain_filter: searchContext.domainFilters,
       search_recency_filter: searchContext.recencyFilter,
       return_images: false,
-      return_related_questions: false
+      return_related_questions: false,
+      top_p: 0.85,
+      frequency_penalty: 0.2
     };
 
-    console.log(`[PERPLEXITY] Content search for topic: ${topic}`);
-    console.log(`[PERPLEXITY] Platform: ${platform}, Domains: ${searchContext.domainFilters.join(', ')}`);
+    console.log(`[PERPLEXITY-PHASE2] Content Generation Context:`);
+    console.log(`  Topic: ${topic}`);
+    console.log(`  Platform: ${platform}`);
+    console.log(`  Expert: ${expertProfile.primaryExpertise}`);
+    console.log(`  Model: ${optimalModel} (${contentComplexity})`);
+    console.log(`  Domains: ${searchContext.domainFilters.length} expert-specific sources`);
+    console.log(`  Audience: ${expertProfile.targetAudience}`);
 
     return this.rateLimiter.executeWithRetry(async () => {
       const response = await fetch(this.baseUrl, {
@@ -357,13 +576,31 @@ export class PerplexityService {
 
       const data: PerplexityResponse = await response.json();
       
-      console.log(`[PERPLEXITY] Content ideas generated! Used ${data.usage.total_tokens} tokens`);
-      if (data.citations) {
-        console.log(`[PERPLEXITY] Sources found: ${data.citations.length} citations`);
-      }
+      console.log(`[PERPLEXITY-PHASE2] Content Success! Model: ${optimalModel}, Tokens: ${data.usage.total_tokens}`);
+      console.log(`[PERPLEXITY-PHASE2] Expert-filtered sources: ${data.citations?.length || 0} citations`);
 
       return data;
     });
+  }
+
+  // PHASE 2: Optimization utilities
+  private getOptimalTokenLimit(complexity: 'simple' | 'medium' | 'complex'): number {
+    const tokenLimits = {
+      'simple': 1000,
+      'medium': 1500,
+      'complex': 2500
+    };
+    return tokenLimits[complexity];
+  }
+
+  private getOptimalTemperature(contentType: string): number {
+    const temperatureMap: Record<string, number> = {
+      'trending_topics': 0.3,    // More focused for trending content
+      'content_ideas': 0.4,      // Slightly more creative for ideas
+      'research': 0.2,           // Very focused for research
+      'analysis': 0.3            // Balanced for analysis
+    };
+    return temperatureMap[contentType] || 0.35;
   }
 }
 
