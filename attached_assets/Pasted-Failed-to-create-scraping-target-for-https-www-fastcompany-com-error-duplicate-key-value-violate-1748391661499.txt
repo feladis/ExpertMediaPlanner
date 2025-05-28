@@ -1,0 +1,52 @@
+Failed to create scraping target for https://www.fastcompany.com: error: duplicate key value violates unique constraint "scraping_targets_domain_unique"
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createScrapingTarget (/home/runner/workspace/server/storage.ts:473:25)
+    at async ProfileScrapingSync.createOrUpdateScrapingTarget (/home/runner/workspace/server/profile-scraping-sync.ts:50:7)
+    at async ProfileScrapingSync.syncExpertSources (/home/runner/workspace/server/profile-scraping-sync.ts:29:9)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:316:9) {
+  length: 253,
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (domain)=(www.fastcompany.com) already exists.',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'scraping_targets',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'scraping_targets_domain_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+Failed to create scraping target for https://sloanreview.mit.edu: error: duplicate key value violates unique constraint "scraping_targets_domain_unique"
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createScrapingTarget (/home/runner/workspace/server/storage.ts:473:25)
+    at async ProfileScrapingSync.createOrUpdateScrapingTarget (/home/runner/workspace/server/profile-scraping-sync.ts:50:7)
+    at async ProfileScrapingSync.syncExpertSources (/home/runner/workspace/server/profile-scraping-sync.ts:29:9)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:316:9) {
+  length: 253,
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (domain)=(sloanreview.mit.edu) already exists.',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'scraping_targets',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'scraping_targets_domain_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
