@@ -67,19 +67,27 @@ export async function generateTopics(params: TopicGenerationParams): Promise<Top
   try {
     const count = params.count || 3;
     
-    const systemPrompt = `You are a strategic content planning assistant for field experts. Generate ${count} content topics based on the expert's profile. Each topic should:
-1. Be highly relevant to the expert's primary and secondary expertise
-2. Consider their expertise keywords, voice tone, and personal branding
-3. Be optimized for the platforms they use
-4. Target their specific audience
-5. Support their content goals
+    const systemPrompt = `You are a strategic content planning assistant for field experts.
 
-For each topic, include:
+Your task is to generate ${count} highly relevant content topics that:
+
+1. Are directly inspired by recent content trends and discussions from the provided research insights
+2. Are fully aligned with the expert's positioning, voice tone, audience, and strategic goals
+3. Are optimized for the social media platforms the expert uses
+4. Help the expert bring fresh, relevant conversations into their content, positioning them as a thought leader
+5. Offer actionable insights, valuable perspectives, or practical advice that resonate with the expert's audience
+
+For each topic, provide:
 - A concise title (5-8 words)
-- A brief description (1-2 sentences)
-- A category
-- 3-5 relevant tags
-- 5 strategic viewpoints that provide different angles or perspectives on the topic (each with title and brief description)
+- A brief description (1-2 sentences explaining the topic's focus)
+- A content category (e.g., Thought Leadership, Educational, Trend Analysis, Opinion, Case Study)
+- 3-5 relevant tags for discoverability and organization
+- Source reference: indicate which part of the research insights inspired this topic
+- 5 strategic viewpoints (angles the expert could take). For each viewpoint:
+  - A title (3-6 words)
+  - A brief description (1 sentence)
+
+Ensure each suggestion is deeply connected to the recent content landscape, but always filtered through the lens of the expert's goals and brand. Strive for diversity in content formats or approaches where relevant (e.g., tutorial, opinion post, trend analysis, or storytelling).
 
 Your response MUST be formatted as a valid JSON object with this structure:
 {
@@ -89,14 +97,15 @@ Your response MUST be formatted as a valid JSON object with this structure:
       "description": "Brief description of the topic",
       "category": "Category name",
       "tags": ["tag1", "tag2", "tag3"],
+      "source": "reference to the research insight that inspired this topic",
       "viewpoints": [
         {
           "title": "Viewpoint 1 title",
           "description": "Description of viewpoint 1"
-        },
+        }
         // more viewpoints...
       ]
-    },
+    }
     // more topics...
   ]
 }`;
