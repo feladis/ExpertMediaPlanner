@@ -13,7 +13,6 @@ import {
 } from "@shared/schema";
 import { generateTopics, generateContentIdeas } from "./anthropic-fixed";
 // ❌ PHASE 3: REMOVED - WebScraper import (scraping system deprecated)
-import { contentPipeline } from "./content-pipeline";
 import { contentPipelineV2 } from "./content-pipeline-v2";
 // import { perplexityService } from "./perplexity"; // Temporarily disabled
 import { registerPerplexityRoutes } from "./perplexity-routes";
@@ -332,8 +331,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tags: ['bootstrap', 'setup']
           });
 
-          // Use the bootstrap topic to trigger content scraping
-          const bootstrapResult = await contentPipeline.generateContentWithScraping({
+          // Use the bootstrap topic to trigger content generation
+          const bootstrapResult = await contentPipelineV2.generateContent({
             topicId: bootstrapTopic.id,
             platform: 'linkedin',
             expertId
@@ -489,8 +488,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (useLegacy) {
         console.log('[ROUTES] Using LEGACY pipeline (scraping)');
-        // Legacy code continues working
-        const result = await contentPipeline.generateContentWithScraping({
+        // Legacy code redirected to new pipeline
+        const result = await contentPipelineV2.generateContent({
           topicId,
           platform,
           expertId

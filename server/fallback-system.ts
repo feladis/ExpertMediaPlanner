@@ -1,6 +1,6 @@
 // PHASE 3: Robust Fallback System with Quality Preservation
 import { ExpertProfile } from '@shared/schema';
-import { generateTopics, generateContentIdeas } from './anthropic';
+import { generateTopics, generateContentIdeas } from './anthropic-fixed';
 
 export interface FallbackConfig {
   enabled: boolean;
