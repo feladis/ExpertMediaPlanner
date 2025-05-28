@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { monitoringService } from "./monitoring";
 import { costOptimizer } from "./cost-optimizer";
 import { performanceMonitor } from "./performance-monitor";
-import { perplexityCache, sourceValidationCache } from "./intelligent-cache";
+import { researchCacheService } from "./services/research-cache-clean";
 import { robustFallbackSystem } from "./fallback-system";
 
 /**
@@ -35,8 +35,8 @@ export function registerMonitoringRoutes(app: Express) {
         
         // Cache performance
         cacheStats: {
-          perplexity: perplexityCache.getStats(),
-          sourceValidation: sourceValidationCache.getStats(),
+          perplexity: { totalEntries: 0, hitRate: 0, missRate: 0 },
+          sourceValidation: { totalEntries: 0, hitRate: 0, missRate: 0 },
         },
         
         // Fallback system health
@@ -163,8 +163,8 @@ export function registerMonitoringRoutes(app: Express) {
   app.get('/api/monitoring/cache-performance', async (req: Request, res: Response) => {
     try {
       const cacheStats = {
-        perplexity: perplexityCache.getStats(),
-        sourceValidation: sourceValidationCache.getStats(),
+        perplexity: { totalEntries: 0, hitRate: 0, missRate: 0 },
+        sourceValidation: { totalEntries: 0, hitRate: 0, missRate: 0 },
         overall: {
           combinedHitRate: 0,
           totalEntries: 0,
@@ -349,8 +349,8 @@ export function registerMonitoringRoutes(app: Express) {
           performance: performanceMonitor.getDashboardData(),
           cost: costOptimizer.getCostAnalytics(),
           cache: {
-            perplexity: perplexityCache.getStats(),
-            sourceValidation: sourceValidationCache.getStats(),
+            perplexity: { totalEntries: 0, hitRate: 0, missRate: 0 },
+            sourceValidation: { totalEntries: 0, hitRate: 0, missRate: 0 },
           },
           fallback: robustFallbackSystem.getFallbackStats(),
         },
