@@ -169,16 +169,28 @@ Generate strategic content topics that align with this expert's positioning and 
 
     try {
       // Clean the response by removing markdown code blocks if present
-      const cleanedResponse = responseText
-        .replace(/^```json\s*/, '')  // Remove opening ```json
-        .replace(/\s*```$/, '')      // Remove closing ```
+      let cleanedResponse = responseText.trim();
+      
+      // Remove various markdown code block patterns
+      cleanedResponse = cleanedResponse
+        .replace(/^```(?:json)?\s*/gm, '')  // Remove opening ```json or ``` at start of lines
+        .replace(/\s*```\s*$/gm, '')        // Remove closing ``` at end of lines
+        .replace(/^`{1,3}/gm, '')           // Remove any remaining backticks at start of lines
+        .replace(/`{1,3}$/gm, '')           // Remove any remaining backticks at end of lines
         .trim();
+      
+      // Try to find JSON content if wrapped in other text
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedResponse = jsonMatch[0];
+      }
       
       const parsedResponse = JSON.parse(cleanedResponse);
       return parsedResponse.topics || [];
     } catch (parseError) {
       console.error('Failed to parse Anthropic response:', parseError);
       console.error('Raw response text:', responseText.substring(0, 500));
+      console.error('Cleaned response text:', cleanedResponse?.substring(0, 500));
       throw new Error('Failed to generate properly formatted topics');
     }
 
@@ -237,10 +249,29 @@ Generate content ideas that leverage these elements effectively.`;
     const responseText = response.content[0]?.type === 'text' ? response.content[0].text : '';
     
     try {
-      const parsedResponse = JSON.parse(responseText);
+      // Clean the response by removing markdown code blocks if present
+      let cleanedResponse = responseText.trim();
+      
+      // Remove various markdown code block patterns
+      cleanedResponse = cleanedResponse
+        .replace(/^```(?:json)?\s*/gm, '')  // Remove opening ```json or ``` at start of lines
+        .replace(/\s*```\s*$/gm, '')        // Remove closing ``` at end of lines
+        .replace(/^`{1,3}/gm, '')           // Remove any remaining backticks at start of lines
+        .replace(/`{1,3}$/gm, '')           // Remove any remaining backticks at end of lines
+        .trim();
+      
+      // Try to find JSON content if wrapped in other text
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedResponse = jsonMatch[0];
+      }
+      
+      const parsedResponse = JSON.parse(cleanedResponse);
       return parsedResponse.ideas || [];
     } catch (parseError) {
       console.error('Failed to parse content ideas response:', parseError);
+      console.error('Raw response text:', responseText.substring(0, 500));
+      console.error('Cleaned response text:', cleanedResponse?.substring(0, 500));
       throw new Error('Failed to generate properly formatted content ideas');
     }
 
