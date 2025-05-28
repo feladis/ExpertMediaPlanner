@@ -1,0 +1,84 @@
+ try {
+    const count = params.count || 3;
+    
+    const systemPrompt = `You are a strategic content planning assistant for field experts.
+
+Your task is to generate ${count} highly relevant content topics that:
+
+1. Are directly inspired by recent content trends and discussions from the provided research insights
+2. Are fully aligned with the expert's positioning, voice tone, audience, and strategic goals
+3. Are optimized for the social media platforms the expert uses
+4. Help the expert bring fresh, relevant conversations into their content, positioning them as a thought leader
+5. Offer actionable insights, valuable perspectives, or practical advice that resonate with the expert's audience
+
+For each topic, provide:
+- A concise title (5-8 words)
+- A brief description (1-2 sentences explaining the topic's focus)
+- A content category (e.g., Thought Leadership, Educational, Trend Analysis, Opinion, Case Study)
+- 3-5 relevant tags for discoverability and organization
+- Source reference: indicate which part of the research insights inspired this topic
+- 5 strategic viewpoints (angles the expert could take). For each viewpoint:
+  - A title (3-6 words)
+  - A brief description (1 sentence)
+
+Ensure each suggestion is deeply connected to the recent content landscape, but always filtered through the lens of the expert's goals and brand. Strive for diversity in content formats or approaches where relevant (e.g., tutorial, opinion post, trend analysis, or storytelling).
+
+Your response MUST be formatted as a valid JSON object with this structure:
+{
+  "topics": [
+    {
+      "title": "Title of the topic",
+      "description": "Brief description of the topic",
+      "category": "Category name",
+      "tags": ["tag1", "tag2", "tag3"],
+      "source": "reference to the research insight that inspired this topic",
+      "viewpoints": [
+        {
+          "title": "Viewpoint 1 title",
+          "description": "Description of viewpoint 1"
+        }
+        // more viewpoints...
+      ]
+    }
+    // more topics...
+  ]
+}`;
+
+    // Enhance with Perplexity research if available
+    const researchQuery = `latest trends ${params.primaryExpertise} ${params.expertiseKeywords.slice(0, 3).join(' ')}`;
+    const perplexityResearch = await getPerplexityResearch(researchQuery, { recency: 'week' });
+
+    let userPrompt = '';
+
+    // Prioritize research insights as the foundation
+    if (perplexityResearch) {
+      userPrompt = `Based on the following recent content insights from trusted sources (last 7 days):
+
+${perplexityResearch}
+
+And considering my expert profile:
+- Primary expertise: ${params.primaryExpertise}
+- Secondary expertise: ${params.secondaryExpertise.join(', ')}
+- Expertise keywords: ${params.expertiseKeywords.join(', ')}
+- Voice tone: ${params.voiceTone.join(', ')}
+- Personal branding: ${params.personalBranding}
+- Platforms: ${params.platforms.join(', ')}
+- Target audience: ${params.targetAudience}
+- Content goals: ${params.contentGoals.join(', ')}
+
+Please generate strategic content topics that translate these current market discussions into content opportunities aligned with my positioning and goals.`;
+    } else {
+      userPrompt = `Please generate strategic content topics based on my profile:
+- Primary expertise: ${params.primaryExpertise}
+- Secondary expertise: ${params.secondaryExpertise.join(', ')}
+- Expertise keywords: ${params.expertiseKeywords.join(', ')}
+- Voice tone: ${params.voiceTone.join(', ')}
+- Personal branding: ${params.personalBranding}
+- Platforms: ${params.platforms.join(', ')}
+- Target audience: ${params.targetAudience}
+- Content goals: ${params.contentGoals.join(', ')}
+
+Note: No recent research insights available. Focus on evergreen topics within my expertise area.`;
+    }
+
+    const response = await anthropic.messages.create({

@@ -425,23 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Expert profile not found' });
       }
 
-      // Use Perplexity to get real-time industry insights for topic generation
-      const { getPerplexityResearch } = await import('./anthropic');
-      
-      // Create search query for current trends in expert's field
-      const searchQuery = `Latest trends and emerging topics in ${profile.primaryExpertise} industry for ${new Date().getFullYear()}`;
-      
-      let additionalContext = '';
-      try {
-        console.log('[PERPLEXITY-TOPICS] Searching for current industry trends...');
-        additionalContext = await getPerplexityResearch(searchQuery, { recency: 'week' });
-        console.log('[PERPLEXITY-TOPICS] Real-time context acquired successfully');
-      } catch (perplexityError) {
-        console.log('[PERPLEXITY-TOPICS] Perplexity unavailable, using expert profile only');
-        // Continue without Perplexity context if service is unavailable
-      }
-
-      // Generate topics using Anthropic with real-time industry context
+      // Generate topics using Anthropic with real-time Perplexity research
       const topics = await generateTopics({
         primaryExpertise: profile.primaryExpertise || '',
         secondaryExpertise: profile.secondaryExpertise || [],
@@ -451,8 +435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         platforms: profile.platforms || [],
         targetAudience: profile.targetAudience || '',
         contentGoals: profile.contentGoals || [],
-        count: req.body.count || 3,
-        additionalContext // Pass real-time industry context to enhance topic relevance
+        count: req.body.count || 3
       });
 
       // Save topics and viewpoints to storage

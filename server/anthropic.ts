@@ -101,11 +101,19 @@ Your response MUST be formatted as a valid JSON object with this structure:
   ]
 }`;
 
-    // Enhance with Perplexity research if available
+    // Get real-time market intelligence as the foundation
     const researchQuery = `latest trends ${params.primaryExpertise} ${params.expertiseKeywords.slice(0, 3).join(' ')}`;
     const perplexityResearch = await getPerplexityResearch(researchQuery, { recency: 'week' });
 
-    let userPrompt = `Please generate strategic content topics based on my profile:
+    let userPrompt = '';
+
+    // Prioritize research insights as the foundation
+    if (perplexityResearch) {
+      userPrompt = `Based on the following recent content insights from trusted sources (last 7 days):
+
+${perplexityResearch}
+
+And considering my expert profile:
 - Primary expertise: ${params.primaryExpertise}
 - Secondary expertise: ${params.secondaryExpertise.join(', ')}
 - Expertise keywords: ${params.expertiseKeywords.join(', ')}
@@ -113,11 +121,21 @@ Your response MUST be formatted as a valid JSON object with this structure:
 - Personal branding: ${params.personalBranding}
 - Platforms: ${params.platforms.join(', ')}
 - Target audience: ${params.targetAudience}
-- Content goals: ${params.contentGoals.join(', ')}`;
+- Content goals: ${params.contentGoals.join(', ')}
 
-    // Add research insights if available
-    if (perplexityResearch) {
-      userPrompt += `\n\nLatest Industry Research:\n${perplexityResearch}`;
+Please generate strategic content topics that translate these current market discussions into content opportunities aligned with my positioning and goals.`;
+    } else {
+      userPrompt = `Please generate strategic content topics based on my profile:
+- Primary expertise: ${params.primaryExpertise}
+- Secondary expertise: ${params.secondaryExpertise.join(', ')}
+- Expertise keywords: ${params.expertiseKeywords.join(', ')}
+- Voice tone: ${params.voiceTone.join(', ')}
+- Personal branding: ${params.personalBranding}
+- Platforms: ${params.platforms.join(', ')}
+- Target audience: ${params.targetAudience}
+- Content goals: ${params.contentGoals.join(', ')}
+
+Note: No recent research insights available. Focus on evergreen topics within my expertise area.`;
     }
 
     const response = await anthropic.messages.create({
