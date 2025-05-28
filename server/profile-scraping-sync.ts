@@ -40,7 +40,6 @@ export class ProfileScrapingSync {
       const newTarget: InsertScrapingTarget = {
         domain: urlObj.hostname,
         baseUrl: url,
-        sourceName: sourceName,
         isActive: true,
         scrapingFrequency: 24, // 24 hours = daily
         lastScrapedAt: null,
