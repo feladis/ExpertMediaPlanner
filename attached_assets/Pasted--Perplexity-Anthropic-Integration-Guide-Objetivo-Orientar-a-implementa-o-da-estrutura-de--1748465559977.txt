@@ -1,0 +1,210 @@
+**Perplexity & Anthropic Integration Guide**
+
+**Objetivo**
+Orientar a implementação da estrutura de pesquisa profunda e geração de tópicos para o *Expert Planner*, distribuída em dois estágios:
+
+1. **Master Perplexity** → Pesquisa profunda + Armazenamento
+2. **Anthropic** → Consome dados do cache + Gera tópicos
+
+---
+
+## 1. Visão Sistêmica e Arquitetura
+
+Abaixo, um diagrama de alto nível do fluxo de dados e responsabilidades:
+
+```mermaid
+flowchart TD
+  A[Expert Profile]
+  B[Master Perplexity Service]
+  C[Perplexity API]
+  D[Source Validator]
+  E[Research Cache]
+  F[Anthropic Service]
+  G[Topic Planner (JSON)]
+
+  A --> B
+  B -->|deepQuery + domainFilter| C
+  C -->|rawResults| D
+  D -->|validSources + qualityScore| B
+  B -->|enhancedContent + metadata| E
+  E --> F
+  F -->|topics JSON| G
+```
+
+1. **Expert Profile**: objeto contendo dados de expertise, keywords, fontes confiáveis, público e metas.
+2. **Master Perplexity Service**:
+
+   * Constrói `deepQuery` baseado em perfil
+   * Chama Perplexity com filtros de domínio e recência
+   * Valida URLs com biblioteca especializada (ex.: `psl`)
+   * Gera **qualityScore** e `enhancedContent`
+   * Armazena resultado e metadados no cache
+3. **Research Cache**:
+
+   * Guarda entradas com chave composta por query, perfil-hash e recência
+   * Retorna pesquisa existente se `age < limite`
+4. **Anthropic Service**:
+
+   * Aciona a execução do Master Perplexity Service e aguarda a conclusão dessa execução
+   * Busca dados no cache
+   * Alimenta prompt de geração de tópicos (usando template JSON)
+   * Retorna lista de tópicos estruturada
+
+---
+
+## 2. Implementação: Master Perplexity Service
+
+### 2.1 Requisitos Principais
+
+* **Limitar domínios** a no máximo 10.
+* **Retry/backoff** e `timeout` na chamada à API da Perplexity.
+* **Modelo configurável** (ex.: `sonar`, `sonar-pro`).
+* **Validação semântica** opcional (checagem de keywords no conteúdo).
+* **Cache versionado**: inclua hash do perfil na chave.
+
+### 2.2 Dependências Sugeridas
+
+```json
+{
+  "dependencies": {
+    "axios": "^1.x",
+    "psl": "^1.x",
+    "retry-axios": "^3.x",
+    "crypto": "builtin"
+  }
+}
+```
+
+### 2.3 Serviço Refatorado (TypeScript)
+
+```ts
+import axios from 'axios';
+import rax from 'retry-axios';
+import { parse as parseDomain } from 'psl';
+import crypto from 'crypto';
+import { perplexityService } from './perplexity';
+import { sourceValidator } from './source-validator';
+import { researchCacheService } from './research-cache';
+import { storage } from '../storage';
+import type { ExpertProfile, ExpertResearchResult } from '@shared/schema';
+
+export class PerplexityMasterService {
+  private readonly API_TIMEOUT = 15000;
+  private readonly MAX_DOMAINS = 10;
+
+  // 1. Chave de cache gerada a partir de hash do perfil
+  private buildCacheKey(profile: ExpertProfile): string {
+    const hash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify({
+        id: profile.id,
+        expertise: profile.primaryExpertise,
+        keywords: profile.expertiseKeywords,
+        sources: profile.informationSources
+      }))
+      .digest('hex');
+    return `research:${profile.id}:${hash}`;
+  }
+
+  private extractDomains(profile: ExpertProfile): string[] {
+    const domains: Set<string> = new Set();
+    (profile.informationSources || []).forEach(src => {
+      try {
+        const host = new URL(src.url).hostname;
+        const parsed = parseDomain(host);
+        if (parsed?.domain) domains.add(parsed.domain);
+      } catch {}
+    });
+    // fallback
+    if (domains.size === 0) {
+      this.getDefaultDomains(profile.primaryExpertise)
+        .slice(0, this.MAX_DOMAINS)
+        .forEach(d => domains.add(d));
+    }
+    return Array.from(domains).slice(0, this.MAX_DOMAINS);
+  }
+
+  private buildDeepQuery(profile: ExpertProfile): string {
+    const parts: string[] = [];
+    if (profile.primaryExpertise) parts.push(`latest trends in ${profile.primaryExpertise}`);
+    if (profile.expertiseKeywords?.length) parts.push(`focusing on ${profile.expertiseKeywords.join(', ')}`);
+    if (profile.targetAudience) parts.push(`relevant for ${profile.targetAudience}`);
+    if (profile.platforms?.length) parts.push(`suitable for ${profile.platforms.join(' and ')}`);
+    if (profile.contentGoals?.length) parts.push(`with focus on ${profile.contentGoals.join(', ')}`);
+    return parts.join(' ') || 'latest industry insights';
+  }
+
+  public async conductExpertResearch(expertId: number): Promise<ExpertResearchResult> {
+    const start = Date.now();
+    const profile = await storage.getExpertProfile(expertId);
+    if (!profile) throw new Error(`Profile not found: ${expertId}`);
+
+    const cacheKey = this.buildCacheKey(profile);
+    // 2. Check cache
+    const cached = await researchCacheService.get(cacheKey);
+    if (cached && Date.now() - new Date(cached.createdAt).getTime() < 6 * 3600000) {
+      return cached;
+    }
+
+    // 3. Query & domains
+    const deepQuery = this.buildDeepQuery(profile);
+    const domains = this.extractDomains(profile);
+
+    // 4. Chamada Perplexity com retry e timeout
+    const axiosClient = axios.create({ timeout: this.API_TIMEOUT });
+    axiosClient.defaults.raxConfig = { retry: 3, backoffType: 'exponential' };
+    rax.attach(axiosClient);
+
+    const response = await perplexityService.search(deepQuery, {
+      domains,
+      recency: 'week',
+      model: profile.perplexityModel || 'sonar-pro',
+      maxResults: 10,
+      axiosInstance: axiosClient
+    });
+
+    // 5. Validar fontes
+    const validation = await sourceValidator.validateBatch(response.sources || []);
+    const valid = validation.filter(r => r.isValid).map(r => r.url);
+    const invalid = validation.filter(r => !r.isValid).map(r => r.url);
+
+    // 6. Quality score com pesos
+    const weightMap = { hbr: 2, bloomberg: 1.5 };
+    const score = valid.reduce((sum, url) => {
+      const key = Object.keys(weightMap).find(k => url.includes(k)) || 'default';
+      return sum + (weightMap[key] || 1);
+    }, 0) / (response.sources?.length || 1) * 100;
+
+    // 7. Conteúdo aprimorado
+    const enhanced = [`**Research for ${profile.primaryExpertise}**`, deepQuery, response.content]
+      .join('\n\n');
+
+    const result: ExpertResearchResult = {
+      id: cacheKey,
+      content: enhanced,
+      sources: valid,
+      qualityScore: Math.min(100, score),
+      expertId,
+      createdAt: new Date(),
+      metadata: {
+        searchDuration: Date.now() - start,
+        tokenUsage: response.usage,
+        sourceValidation: { total: response.sources?.length || 0, valid: valid.length, invalidUrls: invalid }
+      }
+    };
+
+    // 8. Armazenar no cache
+    await researchCacheService.store(cacheKey, result);
+    return result;
+  }
+}
+
+export const perplexityMasterService = new PerplexityMasterService();
+```
+
+---
+
+> **Próximos Passos**
+>
+> 1. Implementar **Anthropic Service** consumindo `ExpertResearchResult` do cache e gerando tópicos via chat-completions.
+> 2. Definir template de prompt JSON e contract tests.

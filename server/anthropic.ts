@@ -1,10 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { storage } from './storage';
 import { ExpertProfile, ScrapedContent } from '@shared/schema';
-import { perplexityService } from './services/perplexity';
-import { sourceValidator } from './services/source-validator';
-import { smartResearchService } from './services/smart-research';
-import { systemReliability } from './services/system-reliability';
+import { perplexityMasterService } from './services/perplexity-master';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
@@ -170,48 +167,28 @@ Your response MUST be formatted as a valid JSON object with this structure:
   ]
 }`;
 
-    // PHASE 3: Enhanced Smart Research Strategy
+    // CLEAN ARCHITECTURE: Master Perplexity + Anthropic Integration
     const expertId = 1; // TODO: Pass this from the calling function
-    const startTime = Date.now();
     
-    console.log(`🎯 Generating topics using enhanced multi-angle research for ${params.primaryExpertise} expert`);
-    
-    let userPrompt: string;
+    console.log(`🎯 Generating topics for ${params.primaryExpertise} expert using clean architecture`);
     
     try {
-      // PHASE 3: Generate comprehensive multi-angle research
-      const comprehensiveResearch = await smartResearchService.generateComprehensiveResearch({
-        expertId,
-        primaryExpertise: params.primaryExpertise,
-        expertiseKeywords: params.expertiseKeywords,
-        targetAudience: params.targetAudience,
-        platforms: params.platforms,
-        contentGoals: params.contentGoals,
-        recencyFilter: 'week'
-      });
+      // 1. MASTER PERPLEXITY: Verificar cache e executar pesquisa se necessário
+      const researchResult = await perplexityMasterService.conductExpertResearch(expertId);
+      
+      console.log(`📊 Research ready - Quality: ${researchResult.qualityScore}%, Sources: ${researchResult.sources.length}`);
 
-      // Track performance for monitoring
-      systemReliability.trackPerformance(
-        'comprehensive_research', 
-        Date.now() - startTime, 
-        true,
-        { qualityScore: comprehensiveResearch.qualityScore }
-      );
+      // 2. ANTHROPIC: Consumir dados do cache e gerar tópicos
+      const userPrompt = `Based on expert research data from the last 24 hours:
 
-      console.log(`📊 Enhanced research complete - Quality: ${comprehensiveResearch.qualityScore}%, Expert Alignment: ${comprehensiveResearch.expertAlignment}%`);
+${researchResult.content}
 
-      // Build enhanced user prompt with comprehensive intelligence
-      userPrompt = `Based on comprehensive multi-angle market intelligence from verified sources (last 7 days):
+RESEARCH METADATA:
+- Quality Score: ${researchResult.qualityScore}%
+- Valid Sources: ${researchResult.sources.length}
+- Search Duration: ${researchResult.metadata.searchDuration}ms
 
-${comprehensiveResearch.synthesis}
-
-RESEARCH QUALITY METRICS:
-- Overall Quality Score: ${comprehensiveResearch.qualityScore}%
-- Expert Alignment: ${comprehensiveResearch.expertAlignment}%
-- Source Authority: ${comprehensiveResearch.metadata.authorityLevel}
-- Total Verified Sources: ${comprehensiveResearch.metadata.totalSources}
-
-And considering my strategic expert profile:
+Expert Profile Context:
 - Primary expertise: ${params.primaryExpertise}
 - Secondary expertise: ${params.secondaryExpertise.join(', ')}
 - Expertise keywords: ${params.expertiseKeywords.join(', ')}
@@ -221,50 +198,11 @@ And considering my strategic expert profile:
 - Target audience: ${params.targetAudience}
 - Content goals: ${params.contentGoals.join(', ')}
 
-Generate strategic content topics that leverage this multi-dimensional market intelligence. Each topic should:
-1. Connect current trends with market challenges or opportunities
-2. Position me as a thought leader addressing real industry needs
-3. Reference specific insights from the comprehensive research above
-4. Create content opportunities that bridge market relevance with my expert positioning`;
+Generate strategic content topics that translate this market intelligence into actionable content opportunities for this expert's positioning and goals.`;
 
     } catch (error) {
-      // PHASE 4: Enhanced Error Handling with Clear User Guidance
-      console.error('❌ Enhanced research failed, using fallback approach:', error);
-      
-      const errorState = systemReliability.createErrorState(error, 'topic_generation');
-      systemReliability.trackPerformance('comprehensive_research', Date.now() - startTime, false);
-      
-      // Update service health
-      systemReliability.updateServiceHealth('perplexity', { 
-        status: 'degraded', 
-        lastError: errorState.message 
-      });
-
-      // Fallback to simpler research approach
-      console.log('🔄 Falling back to basic research method...');
-      const basicResearch = await getPerplexityResearch(
-        `latest trends ${params.primaryExpertise} ${params.expertiseKeywords.slice(0, 3).join(' ')}`,
-        expertId,
-        params.primaryExpertise,
-        params.expertiseKeywords,
-        { recency: 'week' }
-      );
-
-      userPrompt = `Based on current market intelligence (last 7 days):
-
-${basicResearch}
-
-Expert Profile:
-- Primary expertise: ${params.primaryExpertise}
-- Secondary expertise: ${params.secondaryExpertise.join(', ')}
-- Expertise keywords: ${params.expertiseKeywords.join(', ')}
-- Voice tone: ${params.voiceTone.join(', ')}
-- Personal branding: ${params.personalBranding}
-- Platforms: ${params.platforms.join(', ')}
-- Target audience: ${params.targetAudience}
-- Content goals: ${params.contentGoals.join(', ')}
-
-Generate strategic content topics based on this market intelligence and expert profile.`;
+      console.error('❌ Research execution failed:', error);
+      throw new Error(`Unable to generate topics: ${error.message}`);
     }
 
     const response = await anthropic.messages.create({
