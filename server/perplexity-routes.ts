@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { perplexityService } from "./perplexity";
+import { perplexityService } from "./services/perplexity";
 
 // Helper function to parse Perplexity response into topic format
 function parsePerplexityTopics(content: string, citations: string[]): any[] {
