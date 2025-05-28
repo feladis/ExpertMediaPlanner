@@ -14,6 +14,8 @@ import {
 import { generateTopics, generateContentIdeas } from "./anthropic";
 import { WebScraper, calculateRelevanceScore } from "./scraping";
 import { contentPipeline } from "./content-pipeline";
+import { perplexityService } from "./perplexity";
+import { registerPerplexityRoutes } from "./perplexity-routes";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
