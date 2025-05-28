@@ -12,7 +12,8 @@ import {
   insertScrapingTargetSchema
 } from "@shared/schema";
 import { generateTopics, generateContentIdeas } from "./anthropic";
-import { WebScraper, calculateRelevanceScore } from "./scraping";
+// ❌ PHASE 2: DISABLED - WebScraper import (can be re-enabled by uncommenting)
+// import { WebScraper, calculateRelevanceScore } from "./scraping";
 import { contentPipeline } from "./content-pipeline";
 import { contentPipelineV2 } from "./content-pipeline-v2";
 import { perplexityService } from "./perplexity";
@@ -684,71 +685,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Web Scraping and RAG System Routes
 
-  // Get scraped content
-  app.get('/api/scraped-content', async (req: Request, res: Response) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 20;
-      const offset = parseInt(req.query.offset as string) || 0;
+  // ❌ PHASE 2: DISABLED - Get scraped content (can be re-enabled by uncommenting)
+  // app.get('/api/scraped-content', async (req: Request, res: Response) => {
+  //   try {
+  //     const limit = parseInt(req.query.limit as string) || 20;
+  //     const offset = parseInt(req.query.offset as string) || 0;
 
-      const content = await storage.getScrapedContent(limit, offset);
-      res.json(content);
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  //     const content = await storage.getScrapedContent(limit, offset);
+  //     res.json(content);
+  //   } catch (err) {
+  //     handleError(err, res);
+  //   }
+  // });
 
-  // Validate information sources
-  app.post('/api/validate-sources', async (req: Request, res: Response) => {
-    try {
-      const { sources } = req.body;
+  // ❌ PHASE 2: DISABLED - Validate information sources (can be re-enabled by uncommenting)
+  // app.post('/api/validate-sources', async (req: Request, res: Response) => {
+  //   try {
+  //     const { sources } = req.body;
 
-      if (!sources || !Array.isArray(sources)) {
-        return res.status(400).json({ message: 'Sources array is required' });
-      }
+  //     if (!sources || !Array.isArray(sources)) {
+  //       return res.status(400).json({ message: 'Sources array is required' });
+  //     }
 
-      const scraper = new WebScraper();
-      const validationResults = [];
+  //     const scraper = new WebScraper();
+  //     const validationResults = [];
 
-      for (const source of sources) {
-        const result = await scraper.scrapeUrl(source.url);
-        validationResults.push({
-          url: source.url,
-          name: source.name,
-          valid: result.success,
-          error: result.error,
-          contentPreview: result.content ? result.content.title : null
-        });
-      }
+  //     for (const source of sources) {
+  //       const result = await scraper.scrapeUrl(source.url);
+  //       validationResults.push({
+  //         url: source.url,
+  //         name: source.name,
+  //         valid: result.success,
+  //         error: result.error,
+  //         contentPreview: result.content ? result.content.title : null
+  //       });
+  //     }
 
-      res.json({ results: validationResults });
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  //     res.json({ results: validationResults });
+  //   } catch (err) {
+  //     handleError(err, res);
+  //   }
+  // });
 
-  // Scrape a single URL
-  app.post('/api/scrape-url', async (req: Request, res: Response) => {
-    try {
-      const { url } = req.body;
+  // ❌ PHASE 2: DISABLED - Scrape a single URL (can be re-enabled by uncommenting)
+  // app.post('/api/scrape-url', async (req: Request, res: Response) => {
+  //   try {
+  //     const { url } = req.body;
 
-      if (!url) {
-        return res.status(400).json({ message: 'URL is required' });
-      }
+  //     if (!url) {
+  //       return res.status(400).json({ message: 'URL is required' });
+  //     }
 
-      const scraper = new WebScraper();
-      const result = await scraper.scrapeUrl(url);
+  //     const scraper = new WebScraper();
+  //     const result = await scraper.scrapeUrl(url);
 
-      if (result.success && result.content) {
-        // Save to database
-        const savedContent = await storage.createScrapedContent(result.content);
-        res.json({ success: true, content: savedContent });
-      } else {
-        res.status(400).json({ success: false, error: result.error });
-      }
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  //     if (result.success && result.content) {
+  //       // Save to database
+  //       const savedContent = await storage.createScrapedContent(result.content);
+  //       res.json({ success: true, content: savedContent });
+  //     } else {
+  //       res.status(400).json({ success: false, error: result.error });
+  //     }
+  //   } catch (err) {
+  //     handleError(err, res);
+  //   }
+  // });
 
   // Get relevant content for an expert
   app.get('/api/relevant-content/:expertId', async (req: Request, res: Response) => {
@@ -796,98 +797,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get scraping targets
-  app.get('/api/scraping-targets', async (req: Request, res: Response) => {
-    try {
-      const targets = await storage.getScrapingTargets();
-      res.json(targets);
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  // ❌ PHASE 2: DISABLED - Get scraping targets (can be re-enabled by uncommenting)
+  // app.get('/api/scraping-targets', async (req: Request, res: Response) => {
+  //   try {
+  //     const targets = await storage.getScrapingTargets();
+  //     res.json(targets);
+  //   } catch (err) {
+  //     handleError(err, res);
+  //   }
+  // });
 
-  // Create scraping target
-  app.post('/api/scraping-targets', async (req: Request, res: Response) => {
-    try {
-      const validatedData = insertScrapingTargetSchema.parse(req.body);
-      const target = await storage.createScrapingTarget(validatedData);
-      res.status(201).json(target);
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  // ❌ PHASE 2: DISABLED - Create scraping target (can be re-enabled by uncommenting)
+  // app.post('/api/scraping-targets', async (req: Request, res: Response) => {
+  //   try {
+  //     const validatedData = insertScrapingTargetSchema.parse(req.body);
+  //     const target = await storage.createScrapingTarget(validatedData);
+  //     res.status(201).json(target);
+  //   } catch (err) {
+  //     handleError(err, res);
+  //   }
+  // });
 
-  // Profile Scraping Sync API
-  app.post('/api/sync-scraping-targets', async (req: Request, res: Response) => {
-    try {
-      const { expertId } = req.body;
+  // ❌ PHASE 2: DISABLED - Profile Scraping Sync API (can be re-enabled by uncommenting)
+  // app.post('/api/sync-scraping-targets', async (req: Request, res: Response) => {
+  //   try {
+  //     const { expertId } = req.body;
 
-      const { profileScrapingSync } = await import('./profile-scraping-sync');
+  //     const { profileScrapingSync } = await import('./profile-scraping-sync');
 
-      if (expertId) {
-        await profileScrapingSync.syncExpertSources(parseInt(expertId));
-        res.json({ message: `Synced scraping targets for expert ${expertId}` });
-      } else {
-        await profileScrapingSync.syncAllExpertSources();
-        res.json({ message: 'Synced scraping targets for all experts' });
-      }
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  //     if (expertId) {
+  //       await profileScrapingSync.syncExpertSources(parseInt(expertId));
+  //       res.json({ message: `Synced scraping targets for expert ${expertId}` });
+  //     } else {
+  //       await profileScrapingSync.syncAllExpertSources();
+  //       res.json({ message: 'Synced scraping targets for all experts' });
+  //     }
+  //   } catch (err) {
+  //     handleError(err, res);
+  //   }
+  // });
 
-  app.post('/api/bulk-scrape', async (req: Request, res: Response) => {
-    try {
-      const { expertId } = req.body;
+  // ❌ PHASE 2: DISABLED - Bulk scraping (can be re-enabled by uncommenting)
+  // app.post('/api/bulk-scrape', async (req: Request, res: Response) => {
+  //   try {
+  //     const { expertId } = req.body;
 
-      const targets = await storage.getActiveScrapingTargets();
-      const scraper = new WebScraper();
+  //     const targets = await storage.getActiveScrapingTargets();
+  //     const scraper = new WebScraper();
 
-      const results = [];
+  //     const results = [];
 
-      for (const target of targets) {
-        try {
-          const result = await scraper.scrapeUrl(target.baseUrl);
+  //     for (const target of targets) {
+  //       try {
+  //         const result = await scraper.scrapeUrl(target.baseUrl);
 
-          if (result.success && result.content) {
-            // Check if content already exists
-            const existing = await storage.getScrapedContentByUrl(target.baseUrl);
+  //         if (result.success && result.content) {
+  //           // Check if content already exists
+  //           const existing = await storage.getScrapedContentByUrl(target.baseUrl);
 
-            if (!existing) {
-              // Save new content
-              const savedContent = await storage.createScrapedContent(result.content);
+  //           if (!existing) {
+  //             // Save new content
+  //             const savedContent = await storage.createScrapedContent(result.content);
 
-              // If expertId provided, calculate relevance
-              if (expertId) {
-                const expertProfile = await storage.getExpertProfile(expertId);
-                if (expertProfile) {
-                  const relevanceScore = calculateRelevanceScore(savedContent, expertProfile);
-                  await storage.createExpertContentRelevance({
-                    expertId,
-                    scrapedContentId: savedContent.id!,
-                    relevanceScore,
-                    matchedKeywords: []
-                  });
-                }
-              }
+  //             // If expertId provided, calculate relevance
+  //             if (expertId) {
+  //               const expertProfile = await storage.getExpertProfile(expertId);
+  //               if (expertProfile) {
+  //                 const relevanceScore = calculateRelevanceScore(savedContent, expertProfile);
+  //                 await storage.createExpertContentRelevance({
+  //                   expertId,
+  //                   scrapedContentId: savedContent.id!,
+  //                   relevanceScore,
+  //                   matchedKeywords: []
+  //                 });
+  //               }
+  //             }
 
-              results.push({ url: target.baseUrl, success: true, contentId: savedContent.id });
-            } else {
-              results.push({ url: target.baseUrl, success: true, message: 'Content already exists' });
-            }
-          } else {
-            results.push({ url: target.baseUrl, success: false, error: result.error });
-          }
-        } catch (error) {
-          results.push({ url: target.baseUrl, success: false, error: 'Scraping failed' });
-        }
-      }
+  //             results.push({ url: target.baseUrl, success: true, contentId: savedContent.id });
+  //           } else {
+  //             results.push({ url: target.baseUrl, success: true, message: 'Content already exists' });
+  //           }
+  //         } else {
+  //           results.push({ url: target.baseUrl, success: false, error: result.error });
+  //         }
+  //       } catch (error) {
+  //         results.push({ url: target.baseUrl, success: false, error: 'Scraping failed' });
+  //       }
+  //     }
 
-      res.json({ results, totalProcessed: targets.length });
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  //     res.json({ results, totalProcessed: targets.length });
+  //   } catch (err) {
+  //     handleError(err, res);
+  //   }
+  // });
 
   // Register Perplexity routes
   registerPerplexityRoutes(app);
