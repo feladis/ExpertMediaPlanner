@@ -1,11 +1,44 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { storage } from './storage';
 import { ExpertProfile, ScrapedContent } from '@shared/schema';
+import { perplexityService } from './services/perplexity';
+import { sourceValidator } from './services/source-validator';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'default-key',
 });
+
+// Helper function to enhance content generation with Perplexity research
+async function getPerplexityResearch(query: string, options: { recency?: 'week' | 'month' } = {}): Promise<string> {
+  if (!perplexityService.isEnabled()) {
+    return ''; // Return empty string if Perplexity is not available
+  }
+
+  try {
+    console.log(`🔍 Enhancing with Perplexity research: ${query}`);
+    const result = await perplexityService.search(query, {
+      recency: options.recency || 'week',
+      maxResults: 3
+    });
+
+    // Validate sources if available
+    if (result.sources && result.sources.length > 0) {
+      const validatedSources = await sourceValidator.validateBatch(result.sources);
+      const validSources = validatedSources
+        .filter(v => v.isValid)
+        .map(v => v.url)
+        .slice(0, 3); // Keep only top 3 valid sources
+
+      return `Current research insights: ${result.content}\n\nSources: ${validSources.join(', ')}`;
+    }
+
+    return `Current research insights: ${result.content}`;
+  } catch (error) {
+    console.warn('Perplexity research failed, continuing with Anthropic only:', error);
+    return ''; // Fail gracefully
+  }
+}
 
 interface TopicGenerationParams {
   primaryExpertise: string;
@@ -68,7 +101,11 @@ Your response MUST be formatted as a valid JSON object with this structure:
   ]
 }`;
 
-    const userPrompt = `Please generate strategic content topics based on my profile:
+    // Enhance with Perplexity research if available
+    const researchQuery = `latest trends ${params.primaryExpertise} ${params.expertiseKeywords.slice(0, 3).join(' ')}`;
+    const perplexityResearch = await getPerplexityResearch(researchQuery, { recency: 'week' });
+
+    let userPrompt = `Please generate strategic content topics based on my profile:
 - Primary expertise: ${params.primaryExpertise}
 - Secondary expertise: ${params.secondaryExpertise.join(', ')}
 - Expertise keywords: ${params.expertiseKeywords.join(', ')}
@@ -77,6 +114,11 @@ Your response MUST be formatted as a valid JSON object with this structure:
 - Platforms: ${params.platforms.join(', ')}
 - Target audience: ${params.targetAudience}
 - Content goals: ${params.contentGoals.join(', ')}`;
+
+    // Add research insights if available
+    if (perplexityResearch) {
+      userPrompt += `\n\nLatest Industry Research:\n${perplexityResearch}`;
+    }
 
     const response = await anthropic.messages.create({
       model: 'claude-3-7-sonnet-20250219',
@@ -181,6 +223,10 @@ interface ContentIdeaResult {
 
 export async function generateContentIdeas(params: ContentIdeaGenerationParams): Promise<ContentIdeaResult[]> {
   try {
+    // Enhance with Perplexity research for the specific topic
+    const topicResearchQuery = `${params.topic} ${params.description} ${params.expertiseKeywords.slice(0, 2).join(' ')}`;
+    const perplexityResearch = await getPerplexityResearch(topicResearchQuery, { recency: 'week' });
+
     // Step 1: Get real scraped content and information sources
     let realSources: string[] = [];
     let contextSection = '';
@@ -224,6 +270,11 @@ export async function generateContentIdeas(params: ContentIdeaGenerationParams):
       } catch (error) {
         console.log('Error retrieving expert content:', error.message);
       }
+    }
+
+    // Add Perplexity research to context if available
+    if (perplexityResearch) {
+      contextSection += `\n\nCURRENT TOPIC RESEARCH:\n${perplexityResearch}\n`;
     }
 
     const systemPrompt = `You are a strategic content planning assistant for field experts. Generate 2 content ideas for a specific social media platform based on a topic. Each content idea should:
