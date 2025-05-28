@@ -15,7 +15,7 @@ import { generateTopics, generateContentIdeas } from "./anthropic-final";
 // ❌ PHASE 3: REMOVED - WebScraper import (scraping system deprecated)
 import { contentPipeline } from "./content-pipeline";
 import { contentPipelineV2 } from "./content-pipeline-v2";
-import { perplexityService } from "./perplexity";
+// import { perplexityService } from "./perplexity"; // Temporarily disabled
 import { registerPerplexityRoutes } from "./perplexity-routes";
 import { registerMonitoringRoutes } from "./monitoring-routes";
 import { monitoringService } from "./monitoring";
