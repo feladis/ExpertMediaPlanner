@@ -539,11 +539,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return res.status(201).json({
           ideas: result.ideas,
+          sourcesUsed: result.sourcesUsed,
+          timestamp: result.timestamp,
           metadata: {
-            ...result.metadata,
-            engine: 'legacy-scraping',
-            sourcesUsed: result.sourcesUsed,
-            timestamp: result.timestamp
+            engine: 'legacy-scraping-redirected-to-perplexity'
           }
         });
 
