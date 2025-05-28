@@ -1,0 +1,81 @@
+a critical review of your codebase to identify unused assets and redundancies. Let me analyze the files and dependencies systematically.
+
+Critical Code Redundancy Issues
+1. Multiple Anthropic Service Files (HIGH PRIORITY)
+You have 4 different Anthropic service implementations:
+
+server/anthropic.ts (original, likely unused)
+server/anthropic-clean.ts (clean implementation)
+server/anthropic-final.ts (final implementation)
+server/anthropic-fixed.ts (fixed implementation)
+Currently using: server/anthropic-fixed.ts (imported in routes.ts)
+
+2. Duplicate Perplexity Services
+server/services/perplexity-master.ts (duplicate of master-perplexity-clean.ts)
+server/services/master-perplexity-clean.ts (actively used)
+server/perplexity.ts (root level, likely redundant)
+3. Duplicate Research Cache Services
+server/services/research-cache.ts (old implementation)
+server/services/research-cache-clean.ts (clean implementation, actively used)
+4. Legacy Content Pipeline
+server/content-pipeline.ts (legacy scraping-based)
+server/content-pipeline-v2.ts (new Perplexity-based)
+Unused Dependencies in package.json
+Development Dependencies (Safe to Remove)
+@replit/vite-plugin-cartographer: Not used in vite.config.ts
+@tailwindcss/typography: Not used in tailwind config
+@types/connect-pg-simple: Session storage not implemented
+@types/passport*: Authentication not using Passport
+@types/ws: WebSocket not implemented
+Production Dependencies (Safe to Remove)
+cheerio: Used only in removed scraping system
+connect-pg-simple: Session storage not implemented
+express-session: Session storage not implemented
+memorystore: Session storage not implemented
+passport*: Authentication using Replit auth instead
+ws: WebSocket functionality not implemented
+crypto: Using Node.js built-in instead
+react-icons: Using Lucide React icons instead
+wouter: Using simple routing, not this library
+Unused UI Components (Safe to Remove)
+Many Radix UI components in client/src/components/ui/ are unused:
+
+alert.tsx
+chart.tsx
+navigation-menu.tsx (partially used)
+skeleton.tsx
+toast.tsx / toaster.tsx (hook exists but components unused)
+Files Safe to Remove
+Server Files
+server/anthropic.ts
+server/anthropic-clean.ts
+server/anthropic-final.ts
+server/content-pipeline.ts
+server/services/perplexity-master.ts
+server/services/research-cache.ts
+server/perplexity.ts (root level)
+server/services/smart-research.ts (appears unused)
+server/research-routes.ts (not registered in main routes)
+server/intelligent-cache.ts (superseded by research-cache-clean)
+Test Files (If not actively testing)
+tests/ directory (7 test files that may not be current)
+Archive Directory
+archive/ directory (contains old pasted code snippets)
+attached_assets/ directory (PDF files and pasted content)
+Directory Structure After Cleanup
+The cleaned structure would look like:
+
+├── client/ (keep all - actively used)
+├── server/
+│   ├── services/
+│   │   ├── master-perplexity-clean.ts ✓
+│   │   ├── perplexity.ts ✓
+│   │   ├── rate-limiter.ts ✓
+│   │   ├── research-cache-clean.ts ✓
+│   │   ├── source-validator.ts ✓
+│   │   └── system-reliability.ts ✓
+│   ├── anthropic-fixed.ts ✓ (only this one)
+│   ├── content-pipeline-v2.ts ✓
+│   ├── cost-optimizer.ts ✓
+│   ├── monitoring.ts ✓
+│   └── [other actively used files]
