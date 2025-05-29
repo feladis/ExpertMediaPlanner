@@ -133,16 +133,7 @@ export class DatabaseStorage implements IStorage {
     // Mark the expert's profile as complete
     await this.updateExpert(profile.expertId, { profileComplete: true });
 
-    // AUTO-SYNC: Convert information sources to scraping targets
-    if (formattedProfile.informationSources && formattedProfile.informationSources.length > 0) {
-      try {
-        const { profileScrapingSync } = await import('./profile-scraping-sync');
-        await profileScrapingSync.syncExpertSources(profile.expertId);
-        console.log(`Auto-synced ${formattedProfile.informationSources.length} sources to scraping targets for expert ${profile.expertId}`);
-      } catch (error) {
-        console.error('Error auto-syncing scraping targets:', error);
-      }
-    }
+    // Information sources are now used directly by the Perplexity pipeline for real-time research
 
     return newProfile;
   }
@@ -153,16 +144,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(expertProfiles.expertId, expertId))
       .returning();
 
-    // AUTO-SYNC: Re-sync information sources if they were updated
-    if (updatedProfile && data.informationSources) {
-      try {
-        const { profileScrapingSync } = await import('./profile-scraping-sync');
-        await profileScrapingSync.syncExpertSources(expertId);
-        console.log(`Re-synced information sources to scraping targets for expert ${expertId}`);
-      } catch (error) {
-        console.error('Error re-syncing scraping targets:', error);
-      }
-    }
+    // Information sources updates are automatically picked up by the Perplexity pipeline
 
     return updatedProfile;
   }
