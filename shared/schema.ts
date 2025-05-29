@@ -78,7 +78,9 @@ export const scheduledContent = pgTable("scheduled_content", {
   content: text("content"),
 });
 
-// Scraped content tables for RAG system
+// ❌ DEPRECATED: Legacy scraping system tables - marked for removal
+// These tables are obsolete after migration to Perplexity real-time search
+/*
 export const scrapedContent = pgTable("scraped_content", {
   id: serial("id").primaryKey(),
   url: text("url").notNull().unique(),
@@ -120,6 +122,7 @@ export const scrapingTargets = pgTable("scraping_targets", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+*/
 
 // Research cache for Perplexity market intelligence
 export const researchCache = pgTable("research_cache", {
@@ -229,29 +232,27 @@ export type InsertContentIdea = z.infer<typeof insertContentIdeaSchema>;
 export type ScheduledContent = typeof scheduledContent.$inferSelect;
 export type InsertScheduledContent = z.infer<typeof insertScheduledContentSchema>;
 
-// Scraped content schemas
+// ❌ DEPRECATED: Legacy scraping system schemas - marked for removal
+/*
 export const insertScrapedContentSchema = createInsertSchema(scrapedContent);
-
 export const insertExpertContentRelevanceSchema = createInsertSchema(expertContentRelevance);
-
 export const insertScrapingTargetSchema = createInsertSchema(scrapingTargets).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-// Scraped content types
 export type ScrapedContent = typeof scrapedContent.$inferSelect;
 export type InsertScrapedContent = z.infer<typeof insertScrapedContentSchema>;
+export type ExpertContentRelevance = typeof expertContentRelevance.$inferSelect;
+export type InsertExpertContentRelevance = z.infer<typeof insertExpertContentRelevanceSchema>;
+export type ScrapingTarget = typeof scrapingTargets.$inferSelect;
+export type InsertScrapingTarget = z.infer<typeof insertScrapingTargetSchema>;
+*/
 
+// Active Perplexity research system types
 export type ResearchCache = typeof researchCache.$inferSelect;
 export type InsertResearchCache = z.infer<typeof insertResearchCacheSchema>;
 
 export type ResearchUsage = typeof researchUsage.$inferSelect;
 export type InsertResearchUsage = z.infer<typeof insertResearchUsageSchema>;
-
-export type ExpertContentRelevance = typeof expertContentRelevance.$inferSelect;
-export type InsertExpertContentRelevance = z.infer<typeof insertExpertContentRelevanceSchema>;
-
-export type ScrapingTarget = typeof scrapingTargets.$inferSelect;
-export type InsertScrapingTarget = z.infer<typeof insertScrapingTargetSchema>;

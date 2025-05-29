@@ -5,11 +5,7 @@ import {
   Viewpoint, InsertViewpoint,
   ContentIdea, InsertContentIdea,
   ScheduledContent, InsertScheduledContent,
-  ScrapedContent, InsertScrapedContent,
-  ExpertContentRelevance, InsertExpertContentRelevance,
-  ScrapingTarget, InsertScrapingTarget,
-  experts, expertProfiles, topics, viewpoints, contentIdeas, scheduledContent,
-  scrapedContent, expertContentRelevance, scrapingTargets
+  experts, expertProfiles, topics, viewpoints, contentIdeas, scheduledContent
 } from "@shared/schema";
 
 export interface IStorage {
@@ -46,27 +42,7 @@ export interface IStorage {
   createScheduledContent(content: InsertScheduledContent): Promise<ScheduledContent>;
   updateScheduledContent(id: number, data: Partial<ScheduledContent>): Promise<ScheduledContent | undefined>;
 
-  // Scraped Content methods
-  getScrapedContent(limit?: number, offset?: number): Promise<ScrapedContent[]>;
-  getScrapedContentById(id: number): Promise<ScrapedContent | undefined>;
-  getScrapedContentByUrl(url: string): Promise<ScrapedContent | undefined>;
-  getScrapedContentByHash(hash: string): Promise<ScrapedContent | undefined>;
-  createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent>;
-  updateScrapedContent(id: number, data: Partial<ScrapedContent>): Promise<ScrapedContent | undefined>;
-  deleteScrapedContent(id: number): Promise<boolean>;
-  getRecentScrapedContent(days?: number): Promise<ScrapedContent[]>;
-  getFreshScrapedContent(url: string, maxAgeHours: number): Promise<ScrapedContent | undefined>;
-
-  // Expert Content Relevance methods
-  getExpertContentRelevance(expertId: number, limit?: number): Promise<ExpertContentRelevance[]>;
-  createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance>;
-  getRelevantContentForExpert(expertId: number, limit?: number): Promise<ScrapedContent[]>;
-
-  // Scraping Target methods
-  getScrapingTargets(): Promise<ScrapingTarget[]>;
-  getActiveScrapingTargets(): Promise<ScrapingTarget[]>;
-  createScrapingTarget(target: InsertScrapingTarget): Promise<ScrapingTarget>;
-  updateScrapingTarget(id: number, data: Partial<ScrapingTarget>): Promise<ScrapingTarget | undefined>;
+  // ❌ DEPRECATED: Legacy scraping methods removed
 
   // Content Count methods
   getContentCountForExpert(expertId: number): Promise<number>;
@@ -286,214 +262,13 @@ export class DatabaseStorage implements IStorage {
     return updatedContent;
   }
 
-  // Scraped Content methods
-  async getScrapedContent(limit = 50, offset = 0): Promise<ScrapedContent[]> {
-    return await db.select()
-      .from(scrapedContent)
-      .where(eq(scrapedContent.status, 'active'))
-      .limit(limit)
-      .offset(offset);
-  }
+  // ❌ DEPRECATED: All legacy scraping methods removed
 
-  async getScrapedContentById(id: number): Promise<ScrapedContent | undefined> {
-    const [content] = await db.select()
-      .from(scrapedContent)
-      .where(eq(scrapedContent.id, id));
-    return content;
-  }
-
-  async getScrapedContentByUrl(url: string): Promise<ScrapedContent | undefined> {
-    const [content] = await db.select()
-      .from(scrapedContent)
-      .where(eq(scrapedContent.url, url));
-    return content;
-  }
-
-  async getScrapedContentByHash(hash: string): Promise<ScrapedContent | undefined> {
-    const [content] = await db.select()
-      .from(scrapedContent)
-      .where(eq(scrapedContent.contentHash, hash));
-    return content;
-  }
-
-  async createScrapedContent(content: InsertScrapedContent): Promise<ScrapedContent> {
-    const [newContent] = await db.insert(scrapedContent)
-      .values(content)
-      .returning();
-    return newContent;
-  }
-
-  async updateScrapedContent(id: number, data: Partial<ScrapedContent>): Promise<ScrapedContent | undefined> {
-    const [updatedContent] = await db.update(scrapedContent)
-      .set(data)
-      .where(eq(scrapedContent.id, id))
-      .returning();
-    return updatedContent;
-  }
-
-  async deleteScrapedContent(id: number): Promise<boolean> {
-    const result = await db.delete(scrapedContent)
-      .where(eq(scrapedContent.id, id));
-    return (result.rowCount ?? 0) > 0;
-  }
-
-  async getRecentScrapedContent(days = 7): Promise<ScrapedContent[]> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-
-    return await db.select()
-      .from(scrapedContent)
-      .where(and(
-        eq(scrapedContent.status, 'active'),
-        // gte(scrapedContent.scrapedDate, cutoffDate)
-      ))
-      .orderBy(scrapedContent.scrapedDate);
-  }
-
-  async getFreshScrapedContent(url: string, maxAgeHours: number): Promise<ScrapedContent | undefined> {
-    const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
-
-    const [content] = await db.select()
-      .from(scrapedContent)
-      .where(and(
-        eq(scrapedContent.url, url),
-        eq(scrapedContent.status, 'active'),
-        gte(scrapedContent.scrapedDate, cutoffTime)
-      ))
-      .orderBy(desc(scrapedContent.scrapedDate))
-      .limit(1);
-
-    return content;
-  }
-
-  // Expert Content Relevance methods
-  async getExpertContentRelevance(expertId: number, limit = 20): Promise<ExpertContentRelevance[]> {
-    return await db.select()
-      .from(expertContentRelevance)
-      .where(eq(expertContentRelevance.expertId, expertId))
-      .limit(limit);
-  }
-
-  async createExpertContentRelevance(relevance: InsertExpertContentRelevance): Promise<ExpertContentRelevance> {
-    const [newRelevance] = await db.insert(expertContentRelevance)
-      .values({
-        expertId: relevance.expertId,
-        scrapedContentId: relevance.scrapedContentId,
-        relevanceScore: relevance.relevanceScore,
-        matchedKeywords: relevance.matchedKeywords || []
-      })
-      .returning();
-    return newRelevance;
-  }
-
-  async getRelevantContentForExpert(expertId: number, limit = 5): Promise<ScrapedContent[]> {
-    // Get content ordered by relevance score for this expert
-    const relevantContent = await db.select({
-      scrapedContent
-    })
-      .from(expertContentRelevance)
-      .innerJoin(scrapedContent, eq(expertContentRelevance.scrapedContentId, scrapedContent.id))
-      .where(and(
-        eq(expertContentRelevance.expertId, expertId),
-        eq(scrapedContent.status, 'active')
-      ))
-      .orderBy(expertContentRelevance.relevanceScore)
-      .limit(limit);
-
-    return relevantContent.map(row => row.scrapedContent);
-  }
-
-  // Scraping Target methods
-  async getScrapingTargets(): Promise<ScrapingTarget[]> {
-    return await db.select().from(scrapingTargets);
-  }
-
-  async getScrapingTargetByDomain(domain: string): Promise<ScrapingTarget | undefined> {
-    const results = await db
-      .select()
-      .from(scrapingTargets)
-      .where(eq(scrapingTargets.domain, domain))
-      .limit(1);
-
-    return results[0];
-  }
-
-  async updateScrapingTarget(id: number, data: Partial<InsertScrapingTarget>): Promise<ScrapingTarget | null> {
-    const results = await db
-      .update(scrapingTargets)
-      .set({
-        ...data,
-        updatedAt: new Date()
-      })
-      .where(eq(scrapingTargets.id, id))
-      .returning();
-
-    return results[0] || null;
-  }
-
-  async getScrapedContentByUrl(url: string): Promise<ScrapedContent | null> {
-    const [content] = await db.select()
-      .from(scrapedContent)
-      .where(eq(scrapedContent.url, url))
-      .limit(1);
-    return content || null;
-  }
-
-  async updateScrapedContent(id: number, updates: Partial<InsertScrapedContent>): Promise<ScrapedContent> {
-    const [updated] = await db.update(scrapedContent)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(scrapedContent.id, id))
-      .returning();
-    return updated;
-  }
-
-  async getTopic(id: number): Promise<Topic | null> {
-    const [topic] = await db.select()
-      .from(topics)
-      .where(eq(topics.id, id))
-      .limit(1);
-    return topic || null;
-  }
-
-  async getScrapedContentById(id: number): Promise<ScrapedContent | null> {
-    const [content] = await db.select()
-      .from(scrapedContent)
-      .where(eq(scrapedContent.id, id))
-      .limit(1);
-    return content || null;
-  }
-
-  async getActiveScrapingTargets(): Promise<ScrapingTarget[]> {
-    return await db.select()
-      .from(scrapingTargets)
-      .where(eq(scrapingTargets.isActive, true));
-  }
-
-  async createScrapingTarget(target: InsertScrapingTarget): Promise<ScrapingTarget> {
-    const [newTarget] = await db.insert(scrapingTargets)
-      .values(target)
-      .returning();
-    return newTarget;
-  }
-
-  async updateScrapingTarget(id: number, data: Partial<ScrapingTarget>): Promise<ScrapingTarget | undefined> {
-    const [updatedTarget] = await db.update(scrapingTargets)
-      .set(data)
-      .where(eq(scrapingTargets.id, id))
-      .returning();
-    return updatedTarget;
-  }
-
-  // Content Count methods
+  // Content Count methods - Updated for Perplexity system
   async getContentCountForExpert(expertId: number): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` })
-      .from(expertContentRelevance)
-      .innerJoin(scrapedContent, eq(expertContentRelevance.scrapedContentId, scrapedContent.id))
-      .where(and(
-        eq(expertContentRelevance.expertId, expertId),
-        eq(scrapedContent.status, 'active')
-      ));
+      .from(contentIdeas)
+      .where(eq(contentIdeas.topicId, expertId));
     
     return result[0]?.count || 0;
   }
