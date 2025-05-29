@@ -78,51 +78,7 @@ export const scheduledContent = pgTable("scheduled_content", {
   content: text("content"),
 });
 
-// ❌ DEPRECATED: Legacy scraping system tables - marked for removal
-// These tables are obsolete after migration to Perplexity real-time search
-/*
-export const scrapedContent = pgTable("scraped_content", {
-  id: serial("id").primaryKey(),
-  url: text("url").notNull().unique(),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  summary: text("summary"),
-  author: text("author"),
-  publishedDate: timestamp("published_date"),
-  scrapedDate: timestamp("scraped_date").defaultNow(),
-  contentHash: text("content_hash").notNull().unique(),
-  domain: text("domain").notNull(),
-  wordCount: integer("word_count").default(0),
-  relevanceScore: doublePrecision("relevance_score").default(0),
-  status: text("status").notNull().default("active"), // active, archived, failed
-  keywords: jsonb("keywords").$type<string[]>(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
-});
 
-export const expertContentRelevance = pgTable("expert_content_relevance", {
-  id: serial("id").primaryKey(),
-  expertId: integer("expert_id").references(() => experts.id, { onDelete: "cascade" }),
-  scrapedContentId: integer("scraped_content_id").references(() => scrapedContent.id, { onDelete: "cascade" }),
-  relevanceScore: doublePrecision("relevance_score").notNull(),
-  matchedKeywords: jsonb("matched_keywords").$type<string[]>(),
-  createdAt: timestamp("created_at").defaultNow()
-});
-
-export const scrapingTargets = pgTable("scraping_targets", {
-  id: serial("id").primaryKey(),
-  domain: text("domain").notNull().unique(),
-  baseUrl: text("base_url").notNull(),
-  isActive: boolean("is_active").default(true),
-  lastScrapedAt: timestamp("last_scraped_at"),
-  scrapingFrequency: integer("scraping_frequency").default(24), // hours
-  rateLimit: integer("rate_limit").default(2000), // milliseconds between requests
-  maxPages: integer("max_pages").default(10),
-  selectors: jsonb("selectors"), // CSS selectors for title, content, etc.
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
-});
-*/
 
 // Research cache for Perplexity market intelligence
 export const researchCache = pgTable("research_cache", {
