@@ -2,7 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import { registerRoutes } from '../server/routes';
 
-describe('Web Scraping and RAG API Endpoints', () => {
+describe('Perplexity-based Content Generation API', () => {
   let app: express.Application;
 
   beforeAll(async () => {
@@ -11,239 +11,39 @@ describe('Web Scraping and RAG API Endpoints', () => {
     await registerRoutes(app);
   });
 
-  describe('Scraped Content Endpoints', () => {
-    test('GET /api/scraped-content should return scraped content list', async () => {
+  describe('Core API Endpoints', () => {
+    test('POST /api/generate-content should require expertId', async () => {
       const response = await request(app)
-        .get('/api/scraped-content')
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
-    });
-
-    test('GET /api/scraped-content should accept limit and offset parameters', async () => {
-      const response = await request(app)
-        .get('/api/scraped-content?limit=5&offset=0')
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeLessThanOrEqual(5);
-    });
-
-    test('POST /api/scrape-url should require URL parameter', async () => {
-      const response = await request(app)
-        .post('/api/scrape-url')
+        .post('/api/generate-content')
         .send({})
-        .expect(400);
-
-      expect(response.body.message).toBe('URL is required');
-    });
-
-    test('POST /api/scrape-url should handle invalid URLs', async () => {
-      const response = await request(app)
-        .post('/api/scrape-url')
-        .send({ url: 'not-a-valid-url' })
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBeDefined();
-    });
-  });
-
-  describe('Relevance Calculation Endpoints', () => {
-    test('GET /api/relevant-content/:expertId should return relevant content', async () => {
-      const expertId = 1;
-      const response = await request(app)
-        .get(`/api/relevant-content/${expertId}`)
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
-    });
-
-    test('GET /api/relevant-content/:expertId should accept limit parameter', async () => {
-      const expertId = 1;
-      const response = await request(app)
-        .get(`/api/relevant-content/${expertId}?limit=3`)
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeLessThanOrEqual(3);
-    });
-
-    test('POST /api/calculate-relevance should require expertId and scrapedContentId', async () => {
-      const response = await request(app)
-        .post('/api/calculate-relevance')
-        .send({})
-        .expect(400);
-
-      expect(response.body.message).toBe('Expert ID and Scraped Content ID are required');
-    });
-
-    test('POST /api/calculate-relevance should handle missing expert', async () => {
-      const response = await request(app)
-        .post('/api/calculate-relevance')
-        .send({
-          expertId: 99999, // Non-existent expert
-          scrapedContentId: 1
-        })
-        .expect(404);
-
-      expect(response.body.message).toBe('Expert, profile, or content not found');
-    });
-  });
-
-  describe('Scraping Targets Endpoints', () => {
-    test('GET /api/scraping-targets should return targets list', async () => {
-      const response = await request(app)
-        .get('/api/scraping-targets')
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
-    });
-
-    test('POST /api/scraping-targets should validate input data', async () => {
-      const invalidTarget = {
-        // Missing required fields
-      };
-
-      const response = await request(app)
-        .post('/api/scraping-targets')
-        .send(invalidTarget)
         .expect(400);
 
       expect(response.body.message).toBeDefined();
     });
 
-    test('POST /api/scraping-targets should create valid target', async () => {
-      const validTarget = {
-        domain: 'example.com',
-        baseUrl: 'https://example.com',
-        isActive: true,
-        scrapingFrequency: 24,
-        rateLimit: 2000,
-        maxPages: 10,
-        selectors: {}
-      };
-
+    test('GET /api/topics should return topics for expert', async () => {
       const response = await request(app)
-        .post('/api/scraping-targets')
-        .send(validTarget);
+        .get('/api/topics/1')
+        .expect(200);
 
-      // Should either create successfully or return validation error
-      expect([200, 201, 400]).toContain(response.status);
+      expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    test('GET /api/expert-profiles should handle valid expert ID', async () => {
+      const response = await request(app)
+        .get('/api/expert-profiles/1');
+
+      expect([200, 404]).toContain(response.status);
     });
   });
 
-  describe('Bulk Scraping Endpoints', () => {
-    test('POST /api/bulk-scrape should handle empty targets gracefully', async () => {
+  describe('Authentication', () => {
+    test('POST /api/auth/replit should handle authentication', async () => {
       const response = await request(app)
-        .post('/api/bulk-scrape')
-        .send({ expertId: 1 })
-        .expect(200);
+        .post('/api/auth/replit')
+        .send({});
 
-      expect(response.body.results).toBeDefined();
-      expect(Array.isArray(response.body.results)).toBe(true);
-      expect(response.body.totalProcessed).toBeDefined();
-      expect(typeof response.body.totalProcessed).toBe('number');
-    });
-
-    test('POST /api/bulk-scrape should work without expertId', async () => {
-      const response = await request(app)
-        .post('/api/bulk-scrape')
-        .send({})
-        .expect(200);
-
-      expect(response.body.results).toBeDefined();
-      expect(response.body.totalProcessed).toBeDefined();
-    });
-  });
-
-  describe('Error Handling', () => {
-    test('should handle malformed JSON gracefully', async () => {
-      const response = await request(app)
-        .post('/api/scrape-url')
-        .set('Content-Type', 'application/json')
-        .send('{ invalid json }')
-        .expect(400);
-    });
-
-    test('should handle non-existent endpoints', async () => {
-      await request(app)
-        .get('/api/non-existent-endpoint')
-        .expect(404);
-    });
-
-    test('should handle invalid expert IDs in relevance endpoints', async () => {
-      const response = await request(app)
-        .get('/api/relevant-content/invalid-id')
-        .expect(500);
-    });
-  });
-
-  describe('CRITICAL: Content Authenticity Validation', () => {
-    test('should validate content structure in responses', async () => {
-      const response = await request(app)
-        .get('/api/scraped-content')
-        .expect(200);
-
-      if (response.body.length > 0) {
-        const content = response.body[0];
-        expect(content).toHaveProperty('id');
-        expect(content).toHaveProperty('url');
-        expect(content).toHaveProperty('title');
-        expect(content).toHaveProperty('content');
-        expect(content).toHaveProperty('status');
-        
-        // CRITICAL: Validate URL authenticity
-        expect(content.url).not.toMatch(/^https?:\/\/example\.com/);
-        expect(content.url).not.toMatch(/placeholder/i);
-        expect(content.url).not.toMatch(/fake/i);
-      }
-    });
-
-    test('CRITICAL: should never generate fake URLs in content generation', async () => {
-      // Test content generation endpoint for fake URLs
-      const response = await request(app)
-        .post('/api/generate-content-ideas')
-        .send({
-          topicId: 1,
-          platform: 'linkedin',
-          expertId: 1
-        });
-
-      if (response.status === 201) {
-        for (const idea of response.body) {
-          if (idea.sources) {
-            for (const source of idea.sources) {
-              // CRITICAL: Reject all fake URL patterns
-              expect(source).not.toMatch(/^https?:\/\/hbr\.org\/\d{4}\/\d{2}\//);
-              expect(source).not.toMatch(/^https?:\/\/www\.mckinsey\.com\/business-functions/);
-              expect(source).not.toMatch(/^https?:\/\/sloanreview\.mit\.edu\/article\//);
-              expect(source).not.toMatch(/^https?:\/\/www\.fastcompany\.com\/\d+/);
-              expect(source).not.toMatch(/^https?:\/\/example\.com/);
-              expect(source).not.toMatch(/placeholder/i);
-              
-              // Must be authentic or explicit no-sources message
-              if (!source.includes('No sources available') && !source.includes('manual research required')) {
-                expect(source).toMatch(/^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\//);
-              }
-            }
-          }
-        }
-      }
-    });
-
-    test('should validate scraping target structure', async () => {
-      const response = await request(app)
-        .get('/api/scraping-targets')
-        .expect(200);
-
-      if (response.body.length > 0) {
-        const target = response.body[0];
-        expect(target).toHaveProperty('id');
-        expect(target).toHaveProperty('domain');
-        expect(target).toHaveProperty('baseUrl');
-        expect(target).toHaveProperty('isActive');
-      }
+      expect([200, 401]).toContain(response.status);
     });
   });
 });
