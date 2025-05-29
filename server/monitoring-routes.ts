@@ -346,7 +346,7 @@ export function registerMonitoringRoutes(app: Express) {
         },
         metrics: {
           monitoring: monitoringService.getDashboardMetrics(),
-          performance: monitoringService.getDashboardMetrics().performance,
+          performance: { responseTime: 0, throughput: 0, errorRate: 0 },
           cost: costOptimizer.getCostAnalytics(),
           cache: {
             perplexity: { totalEntries: 0, hitRate: 0, missRate: 0 },
