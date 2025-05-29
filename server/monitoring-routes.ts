@@ -1,8 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { monitoringService } from "./monitoring";
 import { costOptimizer } from "./cost-optimizer";
-import { performanceMonitor } from "./performance-monitor";
-import { researchCacheService } from "./services/research-cache-clean";
 import { robustFallbackSystem } from "./fallback-system";
 
 /**

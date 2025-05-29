@@ -11,6 +11,37 @@ export interface QualityMetrics {
   expertiseAlignment: number;
 }
 
+// Enhanced interfaces from performance-monitor.ts
+export interface SystemHealth {
+  overall: 'healthy' | 'degraded' | 'critical';
+  services: {
+    perplexity: 'up' | 'down' | 'slow';
+    anthropic: 'up' | 'down' | 'slow';
+    database: 'up' | 'down' | 'slow';
+    cache: 'up' | 'down' | 'slow';
+  };
+  lastUpdated: Date;
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  condition: string;
+  threshold: number;
+  severity: 'info' | 'warning' | 'error' | 'critical';
+  enabled: boolean;
+}
+
+export interface PerformanceAlert {
+  id: string;
+  ruleId: string;
+  message: string;
+  severity: 'info' | 'warning' | 'error' | 'critical';
+  timestamp: Date;
+  resolved: boolean;
+  metadata?: any;
+}
+
 export interface CitationMetrics {
   totalCitations: number;
   validCitations: number;
@@ -115,8 +146,46 @@ export class MonitoringService {
   };
 
   private alerts: MonitoringAlert[] = [];
+  private performanceAlerts: PerformanceAlert[] = [];
   private requestTimes: number[] = [];
   private validationTimes: number[] = [];
+  private systemHealth: SystemHealth = {
+    overall: 'healthy',
+    services: {
+      perplexity: 'up',
+      anthropic: 'up',
+      database: 'up',
+      cache: 'up',
+    },
+    lastUpdated: new Date(),
+  };
+
+  private alertRules: AlertRule[] = [
+    {
+      id: 'response_time_high',
+      name: 'High Response Time',
+      condition: 'responseTime > threshold',
+      threshold: 5000, // 5 seconds
+      severity: 'warning',
+      enabled: true,
+    },
+    {
+      id: 'error_rate_high',
+      name: 'High Error Rate',
+      condition: 'errorRate > threshold',
+      threshold: 0.1, // 10%
+      severity: 'error',
+      enabled: true,
+    },
+    {
+      id: 'availability_low',
+      name: 'Low Availability',
+      condition: 'availability < threshold',
+      threshold: 0.95, // 95%
+      severity: 'critical',
+      enabled: true,
+    },
+  ];
 
   // Cost tracking constants (estimated)
   private readonly PERPLEXITY_COST_PER_1K_TOKENS = 0.002;
