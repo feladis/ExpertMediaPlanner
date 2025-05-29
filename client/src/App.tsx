@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
-import ContentIdeas from "@/pages/content-ideas";
+import ContentManagement from "@/pages/content-management";
 import PlatformContent from "@/pages/platform-content";
 import ContentEditorPage from "@/pages/content-editor";
 import Header from "@/components/header";
@@ -151,7 +151,7 @@ function App() {
           <Switch>
             <Route path="/" component={() => <Dashboard expert={expert} onLogin={handleLogin} authLoading={authLoading} />} />
             <Route path="/profile" component={() => <ProfilePage expert={expert} onExpertUpdate={handleExpertUpdate} />} />
-            <Route path="/content-ideas" component={() => <ContentIdeas expert={expert} />} />
+            <Route path="/content-management" component={() => <ContentManagement expert={expert} />} />
             <Route path="/platform-content" component={() => <PlatformContent />} />
             <Route path="/content-editor" component={() => <ContentEditorPage />} />
             <Route component={NotFound} />
