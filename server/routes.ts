@@ -602,52 +602,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ✅ PHASE 5: Legacy scraping routes removed - using Perplexity real-time search
 
-  // Get relevant content for an expert
-  app.get('/api/relevant-content/:expertId', async (req: Request, res: Response) => {
-    try {
-      const expertId = parseInt(req.params.expertId);
-      const limit = parseInt(req.query.limit as string) || 5;
-
-      const relevantContent = await storage.getRelevantContentForExpert(expertId, limit);
-      res.json(relevantContent);
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
-
-  // Calculate and save relevance for expert
-  app.post('/api/calculate-relevance', async (req: Request, res: Response) => {
-    try {
-      const { expertId, scrapedContentId } = req.body;
-
-      if (!expertId || !scrapedContentId) {
-        return res.status(400).json({ message: 'Expert ID and Scraped Content ID are required' });
-      }
-
-      const expert = await storage.getExpert(expertId);
-      const expertProfile = await storage.getExpertProfile(expertId);
-      const scrapedContent = await storage.getScrapedContentById(scrapedContentId);
-
-      if (!expert || !expertProfile || !scrapedContent) {
-        return res.status(404).json({ message: 'Expert, profile, or content not found' });
-      }
-
-      // Legacy relevance calculation removed - using Perplexity real-time scoring
-      const relevanceScore = 0.8; // Default high relevance for migrated content
-
-      const relevanceData = {
-        expertId,
-        scrapedContentId,
-        relevanceScore,
-        matchedKeywords: []
-      };
-
-      const savedRelevance = await storage.createExpertContentRelevance(relevanceData);
-      res.json(savedRelevance);
-    } catch (err) {
-      handleError(err, res);
-    }
-  });
+  // ❌ DEPRECATED: Legacy scraping routes completely removed
+  // Content relevance now handled by Perplexity real-time scoring
 
 
 
